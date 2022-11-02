@@ -103,7 +103,7 @@ def rescale_bboxes(bboxes, starting_size, ending_size):
     return new_boxes
 
 # ALADDIN'S
-def non_max_suppression(bboxes, iou_threshold, threshold, box_format="corners", max_detections=300):
+def non_max_suppression_aladdin(bboxes, iou_threshold, threshold, box_format="corners", max_detections=300):
     """
     Video explanation of this function:
     https://youtu.be/YDkjWEN8jNA
@@ -149,7 +149,7 @@ def non_max_suppression(bboxes, iou_threshold, threshold, box_format="corners", 
 
     return bboxes_after_nms
 
-def my_nms(bboxes, iou_threshold, threshold, max_detections=300):
+def non_max_suppression(batch_bboxes, iou_threshold, threshold, max_detections=300):
 
     """new_bboxes = []
     for box in bboxes:
@@ -159,20 +159,19 @@ def my_nms(bboxes, iou_threshold, threshold, max_detections=300):
             new_bboxes.append(box)"""
 
     bboxes_after_nms = []
-    for box in bboxes:
+    for boxes in batch_bboxes:
+        boxes = torch.masked_select(boxes, boxes[..., 1:2] > threshold).reshape(-1, 6)
 
-        box = torch.masked_select(box, box[..., 0:1] > threshold).reshape(-1, 6)
+        if boxes.shape[0] > max_detections:
+            boxes = boxes[:max_detections, :]
+        boxes[..., 2:3] = boxes[..., 2:3] - (boxes[..., 4:5] / 2)
+        boxes[..., 3:4] = boxes[..., 3:4] - (boxes[..., 5:] / 2)
+        boxes[..., 5:6] = boxes[..., 5:6] + boxes[..., 3:4]
+        boxes[..., 4:5] = boxes[..., 4:5] + boxes[..., 2:3]
 
-        if box.shape[0] > max_detections:
-            box = box[:max_detections, :]
-        box[..., 2:3] = box[..., 2:3] - (box[..., 4:5] / 2)
-        box[..., 3:4] = box[..., 3:4] - (box[..., 5:] / 2)
-        box[..., 5:6] = box[..., 5:6] + box[..., 3:4]
-        box[..., 4:5] = box[..., 4:5] + box[..., 2:3]
+        indices = nms(boxes=boxes[..., 2:] + boxes[..., 0:1], scores=boxes[..., 1], iou_threshold=iou_threshold)
 
-        indices = nms(boxes=box[..., 2:], scores=box[..., 1], iou_threshold=iou_threshold)
-
-        bboxes_after_nms.append(box[indices].tolist())
+        bboxes_after_nms.append(boxes[indices].tolist())
 
     return bboxes_after_nms
 

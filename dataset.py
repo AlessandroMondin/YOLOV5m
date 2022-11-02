@@ -7,7 +7,7 @@ import pandas as pd
 from PIL import Image
 from torch.utils.data import Dataset, DataLoader
 from utils.utils import resize_image
-from utils.bboxes_utils import rescale_bboxes, iou_width_height, coco_to_yolo, non_max_suppression as nms, my_nms
+from utils.bboxes_utils import rescale_bboxes, iou_width_height, coco_to_yolo, non_max_suppression_aladdin, non_max_suppression
 from utils.plot_utils import plot_image, cells_to_bboxes
 import config
 from check import plot_coco
@@ -398,5 +398,5 @@ if __name__ == "__main__":
         boxes = nms(boxes, iou_threshold=1, threshold=0.7, box_format="midpoint")"""
 
         boxes = cells_to_bboxes(y, anchors, S, list_output=False)
-        boxes = my_nms(boxes, iou_threshold=1, threshold=0.7, max_detections=300)
+        boxes = non_max_suppression(boxes, iou_threshold=0.6, threshold=0.01, max_detections=300)
         plot_image(x[0].permute(1, 2, 0).to("cpu"), boxes[0])

@@ -3,7 +3,7 @@ import os
 import csv
 import torch
 from tqdm import tqdm
-from utils.bboxes_utils import intersection_over_union, non_max_suppression, my_nms
+from utils.bboxes_utils import intersection_over_union, non_max_suppression
 from utils.plot_utils import cells_to_bboxes
 from collections import Counter
 
@@ -108,18 +108,17 @@ class YOLO_EVAL:
 
             batch_size = x.shape[0]
 
-            bboxes = cells_to_bboxes(predictions, anchors, strides=model.head.stride, is_pred=True)
+            bboxes = cells_to_bboxes(predictions, anchors, strides=model.head.stride, is_pred=True, list_output=False)
 
             # we just want one bbox for each label, not one for each scale
-            true_bboxes = cells_to_bboxes(labels, anchors, strides=model.head.stride, is_pred=False)
+            true_bboxes = cells_to_bboxes(labels, anchors, strides=model.head.stride, is_pred=False, list_output=True)
 
             for idx in range(batch_size):
                 nms_boxes = non_max_suppression(
-                    bboxes[idx],
+                    bboxes,
                     iou_threshold=self.nms_iou_thresh,
                     threshold=self.conf_threshold,
-                    box_format="midpoint",
-                )
+                )[idx]
 
                 for box in nms_boxes:
                     pred_boxes.append([train_idx] + box)

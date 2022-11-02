@@ -6,7 +6,7 @@ import config
 import torch
 from torch.utils.data import DataLoader
 from utils.plot_utils import cells_to_bboxes
-from utils.bboxes_utils import non_max_suppression as nms, my_nms
+from utils.bboxes_utils import non_max_suppression as nms, non_max_suppression_aladdin
 
 if __name__ == "__main__":
     check_loss = True
@@ -42,10 +42,10 @@ if __name__ == "__main__":
                 bboxes_1 = cells_to_bboxes(out, anchors, strides=model.head.stride, is_pred=True, list_output=True)
                 nms_boxes = []
                 for boxes in bboxes_1:
-                    nms_boxes.append(nms(boxes, iou_threshold=0.6, threshold=0.01, max_detections=300))
+                    nms_boxes.append(non_max_suppression_aladdin(boxes, iou_threshold=0.6, threshold=0.01, max_detections=300))
             if i == 1:
                 bboxes = cells_to_bboxes(out, anchors, strides=model.head.stride, is_pred=True, list_output=False)
-                bboxes = my_nms(bboxes, iou_threshold=0.6, threshold=0.01, max_detections=300)
+                bboxes = nms(bboxes, iou_threshold=0.6, threshold=0.01, max_detections=300)
         print(time.time() - start)
         time.sleep(1)
 

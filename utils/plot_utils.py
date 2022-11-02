@@ -114,13 +114,13 @@ def save_predictions(model, loader, folder, epoch, device, filename, num_images=
 
 
                 out = model(images)
-                boxes = cells_to_bboxes(out, anchors, model.head.stride, is_pred=True)[0]
-                gt_boxes = cells_to_bboxes(targets, anchors, model.head.stride, is_pred=False)[0]
+                boxes = cells_to_bboxes(out, anchors, model.head.stride, is_pred=True, list_output=False)
+                gt_boxes = cells_to_bboxes(targets, anchors, model.head.stride, is_pred=False, list_output=False)
                 
                 # here using different nms_iou_thresh and config_thresh because of 
                 # https://github.com/ultralytics/yolov5/issues/4464
-                boxes = nms(boxes, iou_threshold=0.45, threshold=0.25, box_format="midpoint")
-                gt_boxes = nms(gt_boxes, iou_threshold=1, threshold=0.7, box_format="midpoint")
+                boxes = nms(boxes, iou_threshold=0.45, threshold=0.25)[0]
+                gt_boxes = nms(gt_boxes, iou_threshold=0.45, threshold=0.7)[0]
 
                 cmap = plt.get_cmap("tab20b")
                 class_labels = config.COCO_LABELS
@@ -144,17 +144,17 @@ def save_predictions(model, loader, folder, epoch, device, filename, num_images=
                         class_pred = int(box[0])
 
                         box = box[2:]
-                        upper_left_x = max(box[0] - box[2] / 2, 0)
+                        upper_left_x = max(box[0], 0)
                         upper_left_x = min(upper_left_x, im.shape[1])
-                        lower_left_y = max(box[1] - box[3] / 2, 0)
+                        lower_left_y = max(box[1], 0)
                         lower_left_y = min(lower_left_y, im.shape[0])
 
                         # print(upper_left_x)
                         # print(lower_left_y)
                         rect = patches.Rectangle(
                             (upper_left_x, lower_left_y),
-                            box[2],
-                            box[3],
+                            box[2] - box[0],
+                            box[3] - box[1],
                             linewidth=2,
                             edgecolor=colors[class_pred],
                             facecolor="none",
@@ -206,20 +206,20 @@ def plot_image(image, boxes):
         box = box[2:]
 
         # FOR MY_NMS attempts, also rect = patches.Rectangle box[2] becomes box[2] - box[0] and box[3] - box[1]
-        """upper_left_x = max(box[0], 0)
+        upper_left_x = max(box[0], 0)
         upper_left_x = min(upper_left_x, im.shape[1])
         lower_left_y = max(box[1], 0)
-        lower_left_y = min(lower_left_y, im.shape[0])"""
+        lower_left_y = min(lower_left_y, im.shape[0])
 
-        upper_left_x = max(box[0] - box[2] / 2, 0)
+        """upper_left_x = max(box[0] - box[2] / 2, 0)
         upper_left_x = min(upper_left_x, im.shape[1])
         lower_left_y = max(box[1] - box[3] / 2, 0)
-        lower_left_y = min(lower_left_y, im.shape[0])
+        lower_left_y = min(lower_left_y, im.shape[0])"""
 
         rect = patches.Rectangle(
             (upper_left_x, lower_left_y),
-            box[2],
-            box[3],
+            box[2] - box[0],
+            box[3] - box[1],
             linewidth=2,
             edgecolor=colors[int(class_pred)],
             facecolor="none",
