@@ -50,7 +50,7 @@ def cells_to_bboxes_aladdin(predictions, anchors, S, is_preds=True):
     return scale_bboxes.tolist()
 
 
-def cells_to_bboxes(predictions, anchors, strides, is_pred=False):
+def cells_to_bboxes(predictions, anchors, strides, is_pred=False, list_output=True):
     num_out_layers = len(predictions)
     grid = [torch.empty(0) for _ in range(num_out_layers)]  # initialize
     anchor_grid = [torch.empty(0) for _ in range(num_out_layers)]  # initialize
@@ -78,7 +78,7 @@ def cells_to_bboxes(predictions, anchors, strides, is_pred=False):
 
         all_bboxes.append(scale_bboxes)
 
-    return torch.cat(all_bboxes, dim=1).tolist()
+    return torch.cat(all_bboxes, dim=1).tolist() if list_output else torch.cat(all_bboxes, dim=1)
 
 
 def make_grid(anchors, naxs, stride, nx=20, ny=20, i=0, pred=False):
@@ -204,6 +204,12 @@ def plot_image(image, boxes):
         assert len(box) == 6, "box should contain class pred, confidence, x, y, width, height"
         class_pred = box[0]
         box = box[2:]
+
+        # FOR MY_NMS attempts, also rect = patches.Rectangle box[2] becomes box[2] - box[0] and box[3] - box[1]
+        """upper_left_x = max(box[0], 0)
+        upper_left_x = min(upper_left_x, im.shape[1])
+        lower_left_y = max(box[1], 0)
+        lower_left_y = min(lower_left_y, im.shape[0])"""
 
         upper_left_x = max(box[0] - box[2] / 2, 0)
         upper_left_x = min(upper_left_x, im.shape[1])

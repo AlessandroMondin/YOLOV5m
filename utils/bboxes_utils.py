@@ -1,5 +1,6 @@
 import torch
 import math
+from torchvision.ops import nms
 
 # ALADDIN'S
 def iou_width_height(gt_box, anchors):
@@ -147,3 +148,33 @@ def non_max_suppression(bboxes, iou_threshold, threshold, box_format="corners", 
         bboxes_after_nms.append(chosen_box)
 
     return bboxes_after_nms
+
+def my_nms(bboxes, iou_threshold, threshold, max_detections=300):
+
+    """new_bboxes = []
+    for box in bboxes:
+        if box[1] > threshold:
+            box[3] = box[0] + box[3]
+            box[2] = box[2] + box[4]
+            new_bboxes.append(box)"""
+
+    bboxes_after_nms = []
+    for box in bboxes:
+
+        box = torch.masked_select(box, box[..., 0:1] > threshold).reshape(-1, 6)
+
+        if box.shape[0] > max_detections:
+            box = box[:max_detections, :]
+        box[..., 2:3] = box[..., 2:3] - (box[..., 4:5] / 2)
+        box[..., 3:4] = box[..., 3:4] - (box[..., 5:] / 2)
+        box[..., 5:6] = box[..., 5:6] + box[..., 3:4]
+        box[..., 4:5] = box[..., 4:5] + box[..., 2:3]
+
+        indices = nms(boxes=box[..., 2:], scores=box[..., 1], iou_threshold=iou_threshold)
+
+        bboxes_after_nms.append(box[indices].tolist())
+
+    return bboxes_after_nms
+
+
+

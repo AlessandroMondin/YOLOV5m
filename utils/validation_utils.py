@@ -3,7 +3,7 @@ import os
 import csv
 import torch
 from tqdm import tqdm
-from utils.bboxes_utils import intersection_over_union, non_max_suppression
+from utils.bboxes_utils import intersection_over_union, non_max_suppression, my_nms
 from utils.plot_utils import cells_to_bboxes
 from collections import Counter
 
