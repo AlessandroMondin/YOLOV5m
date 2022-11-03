@@ -164,13 +164,15 @@ def non_max_suppression(batch_bboxes, iou_threshold, threshold, max_detections=3
 
         if boxes.shape[0] > max_detections:
             boxes = boxes[:max_detections, :]
+
+        # from xywh to x1y1x2y2
+
         boxes[..., 2:3] = boxes[..., 2:3] - (boxes[..., 4:5] / 2)
         boxes[..., 3:4] = boxes[..., 3:4] - (boxes[..., 5:] / 2)
         boxes[..., 5:6] = boxes[..., 5:6] + boxes[..., 3:4]
         boxes[..., 4:5] = boxes[..., 4:5] + boxes[..., 2:3]
 
         indices = nms(boxes=boxes[..., 2:] + boxes[..., 0:1], scores=boxes[..., 1], iou_threshold=iou_threshold)
-
         bboxes_after_nms.append(boxes[indices].tolist())
 
     return bboxes_after_nms

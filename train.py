@@ -79,9 +79,9 @@ def main(opt):
 
         model.train()
 
-        """train_loop(model=model, loader=train_loader, loss_fn=loss_fn, optim=optim,
+        train_loop(model=model, loader=train_loader, loss_fn=loss_fn, optim=optim,
                    scaler=scaler, epoch=0+starting_epoch, num_epochs=opt.epochs + starting_epoch,
-                   multi_scale_training=not rect_training)"""
+                   multi_scale_training=not rect_training)
 
         model.eval()
 

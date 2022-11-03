@@ -90,11 +90,11 @@ class YOLO_LOSS:
 
         targets = [self.build_targets(preds, bboxes, pred_size) for bboxes in targets]
 
-        t1 = torch.stack([target[0] for target in targets], dim=0).to(config.DEVICE)
-        t2 = torch.stack([target[1] for target in targets], dim=0).to(config.DEVICE)
-        t3 = torch.stack([target[2] for target in targets], dim=0).to(config.DEVICE)
+        t1 = torch.stack([target[0] for target in targets], dim=0)
+        t2 = torch.stack([target[1] for target in targets], dim=0)
+        t3 = torch.stack([target[2] for target in targets], dim=0)
 
-        anchors = self.anchors.reshape(3, 3, 2).to(config.DEVICE)
+        anchors = self.anchors.reshape(3, 3, 2)
 
         if self.save_logs:
             l1, logs1 = self.compute_loss(preds[0], t1, anchors=anchors[0], balance=self.balance[0])
@@ -132,8 +132,8 @@ class YOLO_LOSS:
         
         if check_loss:
             targets = [
-                torch.zeros((self.num_anchors_per_scale, input_tensor[i].shape[2], input_tensor[i].shape[3], 6))
-                for i in range(len(self.S))
+                torch.zeros((self.num_anchors_per_scale, input_tensor[i].shape[2], input_tensor[i].shape[3], 6),
+                            device=config.DEVICE) for i in range(len(self.S))
             ]
         else:
             targets = [torch.zeros((self.num_anchors_per_scale, int(input_tensor.shape[2]/S),
@@ -152,7 +152,9 @@ class YOLO_LOSS:
             class_label = classes[idx] - 1  # classes in coco start from 1
             box = coco_to_yolo(box, pw, ph)
 
-            iou_anchors = iou_width_height(torch.tensor(box[2:4]), self.anchors/torch.tensor([640, 640]).to(config.DEVICE))
+            iou_anchors = iou_width_height(torch.tensor(box[2:4], device=config.DEVICE),
+                                           self.anchors/torch.tensor([640, 640], device=config.DEVICE))
+
             anchor_indices = iou_anchors.argsort(descending=True, dim=0)
 
             x, y, width, height, = box
@@ -213,8 +215,8 @@ class YOLO_LOSS:
                         height * scale_y,
                     )  # can be greater than 1 since it's relative to cell
                     box_coordinates = torch.tensor(
-                        [x_cell, y_cell, width_cell, height_cell]
-                    )
+                        [x_cell, y_cell, width_cell, height_cell], device=config.DEVICE
+                    ),
                     targets[scale_idx][anchor_on_scale, i, j, 1:5] = box_coordinates
                     targets[scale_idx][anchor_on_scale, i, j, 5] = int(class_label)
                     has_anchor[scale_idx] = True
@@ -299,9 +301,9 @@ if __name__ == "__main__":
 
     if check_loss:
         for images, bboxes in loader:
-            images = torch.stack(images, dim=0)
+            images = torch.stack(images, dim=0).to(config.DEVICE)
             if not dataset.rect_training:
-                images = multi_scale(images, target_shape=640, max_stride=32).to(config.DEVICE)
+                images = multi_scale(images, target_shape=640, max_stride=32)
 
             preds = model(images)
             start = time.time()
@@ -312,9 +314,9 @@ if __name__ == "__main__":
 
     else:
         for images, bboxes in loader:
-            images = torch.stack(images, dim=0)
+            images = torch.stack(images, dim=0).to(config.DEVICE)
             if not dataset.rect_training:
-                images = multi_scale(images, target_shape=640, max_stride=32).to(config.DEVICE)
+                images = multi_scale(images, target_shape=640, max_stride=32)
 
             images = torch.unsqueeze(images[0], dim=0)  # keep just the first img but preserving bs
             bboxes = bboxes[0]
@@ -322,7 +324,10 @@ if __name__ == "__main__":
             targets = [torch.unsqueeze(target, dim=0) for target in targets]
 
             S = [8, 16, 32]
-            boxes = cells_to_bboxes(targets, anchors, S)
-            boxes = nms(boxes, iou_threshold=1, threshold=0.7, box_format="midpoint")
+            boxes = cells_to_bboxes(targets, anchors, S, list_output=False)
+            boxes = nms(boxes, iou_threshold=1, threshold=0.7, max_detections=300)
 
-            plot_image(images[0].permute(1, 2, 0).to("cpu"), boxes)
+            plot_image(images[0].permute(1, 2, 0).to("cpu"), boxes[0])
+
+
+

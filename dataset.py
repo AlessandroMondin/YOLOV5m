@@ -7,10 +7,9 @@ import pandas as pd
 from PIL import Image
 from torch.utils.data import Dataset, DataLoader
 from utils.utils import resize_image
-from utils.bboxes_utils import rescale_bboxes, iou_width_height, coco_to_yolo, non_max_suppression_aladdin, non_max_suppression
+from utils.bboxes_utils import rescale_bboxes, iou_width_height, coco_to_yolo, non_max_suppression
 from utils.plot_utils import plot_image, cells_to_bboxes
 import config
-from check import plot_coco
 
 
 class MS_COCO_2017(Dataset):
@@ -246,7 +245,9 @@ class MS_COCO_2017_VALIDATION(Dataset):
         # 6 because (p_o, x, y, w, h, class)
         # targets is a list of len 3 and targets[0] has shape (3, 13, 13 ,6)
         # ?where is batch_size?
-        targets = [torch.zeros((self.num_anchors // 3, int(img.shape[1]/S), int(img.shape[2]/S), 6)) for S in self.S]
+        targets = [torch.zeros((self.num_anchors // 3, int(img.shape[1]/S), int(img.shape[2]/S), 6),
+                               device=config.DEVICE) for S in self.S]
+
         for idx, box in enumerate(bboxes):
             class_label = classes[idx] - 1  # classes in coco start from 1
             box = coco_to_yolo(box, image_w=tg_width, image_h=tg_height)

@@ -1,53 +1,10 @@
-import os.path
-
+import os
 import matplotlib.pyplot as plt
 import config
 import numpy as np
 import matplotlib.patches as patches
 import torch
 from utils.bboxes_utils import non_max_suppression as nms
-
-
-# ALADDIN'S
-def cells_to_bboxes_aladdin(predictions, anchors, S, is_preds=True):
-    """
-    Scales the predictions coming from the model to
-    be relative to the entire image such that they for example later
-    can be plotted or.
-    INPUT:
-    predictions: tensor of size (N, 3, S, S, num_classes+5)
-    anchors: the anchors used for the predictions
-    S: the number of cells the image is divided in on the width (and height)
-    is_preds: whether the input is predictions or the true bounding boxes
-    OUTPUT:
-    converted_bboxes: the converted boxes of sizes (N, num_anchors, S, S, 1+5) with class index,
-                      object score, bounding box coordinates
-    """
-    BATCH_SIZE = predictions.shape[0]
-    num_anchors = len(anchors)
-    box_predictions = predictions[..., 1:5]
-    if is_preds:
-        anchors = anchors.reshape(1, len(anchors), 1, 1, 2)
-        box_predictions[..., 0:2] = box_predictions[..., 0:2].sigmoid() * 2 - 0.5
-        box_predictions[..., 2:4] = (box_predictions[..., 2:4].sigmoid() * 2) ** 2 * anchors
-        scores = torch.sigmoid(predictions[..., 0:1])
-        best_class = torch.argmax(predictions[..., 5:], dim=-1).unsqueeze(-1)
-    else:
-        scores = predictions[..., 0:1]
-        best_class = predictions[..., 5:6]
-
-    cell_indices = (
-        torch.arange(S)
-            .repeat(predictions.shape[0], 3, S, 1)
-            .unsqueeze(-1)
-            .to(predictions.device)
-    )
-
-    x = 1 / S * (box_predictions[..., 0:1] + cell_indices)
-    y = 1 / S * (box_predictions[..., 1:2] + cell_indices.permute(0, 1, 3, 2, 4))
-    w_h = 1 / S * box_predictions[..., 2:4]
-    scale_bboxes = torch.cat((best_class, scores, x, y, w_h), dim=-1).reshape(BATCH_SIZE, num_anchors * S * S, 6)
-    return scale_bboxes.tolist()
 
 
 def cells_to_bboxes(predictions, anchors, strides, is_pred=False, list_output=True):
@@ -60,7 +17,7 @@ def cells_to_bboxes(predictions, anchors, strides, is_pred=False, list_output=Tr
         stride = strides[i]
         grid[i], anchor_grid[i] = make_grid(anchors, naxs, ny=ny, nx=nx, stride=stride, i=i)
         if is_pred:
-            predictions[i] = predictions[i].to(config.DEVICE)
+            predictions[i] = predictions[i]
             # formula here: https://github.com/ultralytics/yolov5/issues/471
             obj = torch.sigmoid(predictions[i][..., 0:1])
             xy = (2 * (predictions[i][..., 1:3] - 0.5) + grid[i]) * stride
@@ -68,7 +25,7 @@ def cells_to_bboxes(predictions, anchors, strides, is_pred=False, list_output=Tr
             best_class = torch.argmax(predictions[i][..., 5:], dim=-1).unsqueeze(-1)
 
         else:
-            predictions[i] = predictions[i].to(config.DEVICE)
+            predictions[i] = predictions[i]
             obj = predictions[i][..., 0:1]
             xy = (predictions[i][..., 1:3] + grid[i]) * stride
             wh = predictions[i][..., 3:5] * stride  # * anchor_grid[i]
@@ -111,7 +68,6 @@ def save_predictions(model, loader, folder, epoch, device, filename, num_images=
 
         if idx < num_images:
             with torch.no_grad():
-
 
                 out = model(images)
                 boxes = cells_to_bboxes(out, anchors, model.head.stride, is_pred=True, list_output=False)
