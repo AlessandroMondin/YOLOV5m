@@ -90,9 +90,9 @@ class YOLO_LOSS:
 
         targets = [self.build_targets(preds, bboxes, pred_size) for bboxes in targets]
 
-        t1 = torch.stack([target[0] for target in targets], dim=0)
-        t2 = torch.stack([target[1] for target in targets], dim=0)
-        t3 = torch.stack([target[2] for target in targets], dim=0)
+        t1 = torch.stack([target[0] for target in targets], dim=0).to(config.DEVICE,non_blocking=True)
+        t2 = torch.stack([target[1] for target in targets], dim=0).to(config.DEVICE,non_blocking=True)
+        t3 = torch.stack([target[2] for target in targets], dim=0).to(config.DEVICE,non_blocking=True)
 
         anchors = self.anchors.reshape(3, 3, 2)
 
@@ -132,8 +132,8 @@ class YOLO_LOSS:
         
         if check_loss:
             targets = [
-                torch.zeros((self.num_anchors_per_scale, input_tensor[i].shape[2], input_tensor[i].shape[3], 6),
-                            device=config.DEVICE) for i in range(len(self.S))
+                torch.zeros((self.num_anchors_per_scale, input_tensor[i].shape[2], input_tensor[i].shape[3], 6))
+                for i in range(len(self.S))
             ]
         else:
             targets = [torch.zeros((self.num_anchors_per_scale, int(input_tensor.shape[2]/S),
@@ -152,8 +152,7 @@ class YOLO_LOSS:
             class_label = classes[idx] - 1  # classes in coco start from 1
             box = coco_to_yolo(box, pw, ph)
 
-            iou_anchors = iou_width_height(torch.tensor(box[2:4], device=config.DEVICE),
-                                           self.anchors/torch.tensor([640, 640], device=config.DEVICE))
+            iou_anchors = iou_width_height(torch.tensor(box[2:4]), self.anchors/torch.tensor([640, 640], device=config.DEVICE))
 
             anchor_indices = iou_anchors.argsort(descending=True, dim=0)
 
@@ -215,8 +214,8 @@ class YOLO_LOSS:
                         height * scale_y,
                     )  # can be greater than 1 since it's relative to cell
                     box_coordinates = torch.tensor(
-                        [x_cell, y_cell, width_cell, height_cell], device=config.DEVICE
-                    ),
+                        [x_cell, y_cell, width_cell, height_cell]
+                    )
                     targets[scale_idx][anchor_on_scale, i, j, 1:5] = box_coordinates
                     targets[scale_idx][anchor_on_scale, i, j, 5] = int(class_label)
                     has_anchor[scale_idx] = True
@@ -257,7 +256,7 @@ class YOLO_LOSS:
         # ================== #
         # NB: my targets[...,5:6]) is a vector of size bs, 1,
         # ultralytics targets[...,5:6]) is a matrix of shape bs, num_classes
-        lcsl = self.BCE_cls(preds[..., 5:6], targets[..., 5:6])  # BCE
+        lcsl = self.BCE_cls(preds[..., 5:], targets[..., 5])  # BCE
 
         return (
             (self.lambda_box * lbox

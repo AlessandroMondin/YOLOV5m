@@ -12,16 +12,19 @@ parent_dir = Path(__file__).parent.parent
 if "/Users/alessandro" in str(parent_dir):
     ROOT_DIR = os.path.join(parent_dir, "Desktop", "ML", "DL_DATASETS", "COCO")
 else:
-    ROOT_DIR = os.path.join(parent_dir, "coco")
+    ROOT_DIR = os.path.join(parent_dir, "datasets", "coco")
 
 FIRST_OUT = 48
 CLS_PW = 1.0
 OBJ_PW = 1.0
-LEARNING_RATE = 5e-5
-WEIGHT_DECAY = 1e-4
+
+
+LEARNING_RATE = 1e-3
+WEIGHT_DECAY = 5e-4
+
+
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
-SAVE_IMAGES_PATH = "SageMaker/check/check"
 IMAGE_SIZE = 640
 
 

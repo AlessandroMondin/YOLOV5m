@@ -39,6 +39,7 @@ def get_loaders(
         rect_training=False,
         coco128val=False
 ):
+
     S = [8, 16, 32]
 
     train_augmentation = config.ADAPTIVE_TRAIN_TRANSFORM if rect_training else config.TRAIN_TRANSFORMS

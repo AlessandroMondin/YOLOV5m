@@ -91,8 +91,8 @@ class YOLO_EVAL:
         model.train()
 
     def map_pr_rec(self, model, loader, anchors, num_classes, epoch):
-
-        print(".. Computing: MAP, Precision and Recall ..")
+                          
+        print(".. Getting Evaluation bboxes to compute MAP, Precision and Recall ..")
         # make sure model is in eval before get bboxes
 
         model.eval()
@@ -112,13 +112,9 @@ class YOLO_EVAL:
 
             # we just want one bbox for each label, not one for each scale
             true_bboxes = cells_to_bboxes(labels, anchors, strides=model.head.stride, is_pred=False, list_output=True)
-
+            batch_nms_boxes = non_max_suppression(bboxes, iou_threshold=self.nms_iou_thresh, threshold=self.conf_threshold)
             for idx in range(batch_size):
-                nms_boxes = non_max_suppression(
-                    bboxes,
-                    iou_threshold=self.nms_iou_thresh,
-                    threshold=self.conf_threshold,
-                )[idx]
+                nms_boxes = batch_nms_boxes[idx]
 
                 for box in nms_boxes:
                     pred_boxes.append([train_idx] + box)
@@ -146,7 +142,9 @@ class YOLO_EVAL:
         Returns:
             float: mAP value across all classes given a specific IoU threshold
         """
-
+                          
+        print(".. Computing MAP, Precision and Recall ..")
+                          
         # list storing all AP for respective classes
         average_precisions = []
         all_precisions = []
@@ -154,7 +152,7 @@ class YOLO_EVAL:
 
         # used for numerical stability later on
         epsilon = 1e-6
-
+        
         for c in range(num_classes):
             detections = []
             ground_truths = []
