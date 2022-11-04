@@ -266,7 +266,10 @@ class YOLO_LOSS:
         tcls = torch.zeros_like(preds[..., 5:][obj], device=config.DEVICE)
 
         # https://discuss.pytorch.org/t/fill-value-to-matrix-based-on-index/34698/3
-        tcls[torch.arange(tcls.size(0)), targets[..., 5][obj].long()] = targets[..., 5][obj].float()
+        # tcls[torch.arange(tcls.size(0)), targets[..., 5][obj].long()] = targets[..., 5][obj].float() for torch > 1.11.0
+        # that I cannot use on the ml.p2.xlarge in SageMaker, time to learn to use Docker..
+                          
+        tcls[torch.arange(tcls.size(0)), targets[..., 5][obj].long()] = targets[..., 5][obj].half()  # torch==1.10.2
 
         lcls = self.BCE_cls(preds[..., 5:][obj], tcls)  # BCE
 
