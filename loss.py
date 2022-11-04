@@ -58,6 +58,7 @@ class YOLO_LOSS:
         self.balance = [4.0, 1.0, 0.4]  # explanation.. https://github.com/ultralytics/yolov5/issues/2026
 
         anchors = model.head.anchors.clone().detach()
+        self.nc = model.head.nc
         self.anchors = torch.cat((anchors[0], anchors[1], anchors[2]), dim=0)
 
         self.na = self.anchors.shape[0]
@@ -132,9 +133,11 @@ class YOLO_LOSS:
         
         if check_loss:
             targets = [
-                torch.zeros((self.num_anchors_per_scale, input_tensor[i].shape[2], input_tensor[i].shape[3], 6))
+                torch.zeros((self.num_anchors_per_scale, input_tensor[i].shape[2],
+                             input_tensor[i].shape[3], 6))
                 for i in range(len(self.S))
             ]
+            # 5 + len(config.COCO_LABELS)
         else:
             targets = [torch.zeros((self.num_anchors_per_scale, int(input_tensor.shape[2]/S),
                                     int(input_tensor.shape[3]/S), 6)) for S in self.S]
@@ -238,6 +241,9 @@ class YOLO_LOSS:
         pbox = torch.cat((pxy, pwh), dim=-1)
         tbox = targets[..., 1:5]
 
+        # used for class loss
+        obj = targets[..., 0] == 1
+
         # ======================= #
         #   FOR OBJECTNESS SCORE    #
         # ======================= #
@@ -256,18 +262,24 @@ class YOLO_LOSS:
         # ================== #
         # NB: my targets[...,5:6]) is a vector of size bs, 1,
         # ultralytics targets[...,5:6]) is a matrix of shape bs, num_classes
-        lcsl = self.BCE_cls(preds[..., 5:], targets[..., 5])  # BCE
+
+        tcls = torch.zeros_like(preds[..., 5:][obj], device=config.DEVICE)
+
+        # https://discuss.pytorch.org/t/fill-value-to-matrix-based-on-index/34698/3
+        tcls[torch.arange(tcls.size(0)), targets[..., 5][obj].long()] = targets[..., 5][obj].float()
+
+        lcls = self.BCE_cls(preds[..., 5:][obj], tcls)  # BCE
 
         return (
             (self.lambda_box * lbox
              + self.lambda_obj * lobj
-             + self.lambda_class * lcsl) * bs,
+             + self.lambda_class * lcls) * bs,
 
             torch.unsqueeze(
                 torch.stack([
                     self.lambda_box * lbox,
                     self.lambda_obj * lobj,
-                    self.lambda_class * lcsl
+                    self.lambda_class * lcls
                 ]), dim=0
             )
             if self.save_logs else None

@@ -245,7 +245,8 @@ class MS_COCO_2017_VALIDATION(Dataset):
         # 6 because (p_o, x, y, w, h, class)
         # targets is a list of len 3 and targets[0] has shape (3, 13, 13 ,6)
         # ?where is batch_size?
-        targets = [torch.zeros((self.num_anchors // 3, int(img.shape[1]/S), int(img.shape[2]/S), 6))
+        targets = [torch.zeros((self.num_anchors // 3, int(img.shape[1]/S),
+                                int(img.shape[2]/S), 6))
                    for S in self.S]
 
         for idx, box in enumerate(bboxes):
