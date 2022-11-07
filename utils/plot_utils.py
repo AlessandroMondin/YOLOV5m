@@ -19,9 +19,10 @@ def cells_to_bboxes(predictions, anchors, strides, is_pred=False, list_output=Tr
         grid[i], anchor_grid[i] = make_grid(anchors, naxs, ny=ny, nx=nx, stride=stride, i=i)
         if is_pred:
             # formula here: https://github.com/ultralytics/yolov5/issues/471
-            obj = torch.sigmoid(predictions[i][..., 0:1])
+            predictions[i] = predictions[i].sigmoid()
+            obj = predictions[i][..., 0:1]
             xy = (2 * (predictions[i][..., 1:3] - 0.5) + grid[i]) * stride
-            wh = ((2*predictions[i][..., 3:5])**2) * anchor_grid[i] * stride
+            wh = ((2*predictions[i][..., 3:5])**2) * (anchor_grid[i] * stride)
             best_class = torch.argmax(predictions[i][..., 5:], dim=-1).unsqueeze(-1)
 
         else:

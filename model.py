@@ -3,7 +3,9 @@ import time
 import torch
 import torch.nn as nn
 from torchvision.transforms import Resize
+from torchvision.transforms import InterpolationMode
 import config
+#from utils.utils import check_size, count_parameters
 
 
 # performs a convolution, a batch_norm and then applies a SiLU activation function
@@ -12,7 +14,7 @@ class CBL(nn.Module):
         super(CBL, self).__init__()
 
         conv = nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding, bias=False)
-        bn = nn.BatchNorm2d(out_channels)
+        bn = nn.BatchNorm2d(out_channels, eps=1e-3, momentum=0.03)
 
         self.cbl = nn.Sequential(
             conv,
@@ -22,6 +24,7 @@ class CBL(nn.Module):
         )
 
     def forward(self, x):
+        #print(self.cbl(x).shape)
         return self.cbl(x)
 
 
@@ -153,7 +156,8 @@ class HEADS(nn.Module):
         # https://pytorch.org/docs/stable/generated/torch.nn.Module.html command+f register_buffer
         # has the same result as self.anchors = anchors but, it's a way to register a buffer (make
         # a variable available in runtime) that should not be considered a model parameter
-        self.anchors = torch.tensor(anchors, device=config.DEVICE).float().view(self.nl, -1, 2)  # shape(nl,na,2)
+        #self.anchors = torch.tensor(anchors, device=config.DEVICE).float().view(self.nl, -1, 2)  # shape(nl,na,2)
+        self.register_buffer('anchors', torch.tensor(anchors).float().view(self.nl, -1, 2))  # shape(nl,na,2)
 
         self.m = nn.ModuleList(nn.Conv2d(x, self.no * self.naxs, 1) for x in ch)  # output conv
         self.inference = inference
@@ -251,7 +255,7 @@ class YOLOV5m(nn.Module):
             if idx in [0, 2]:
                 x = layer(x)
                 neck_connection.append(x)
-                x = Resize([x.shape[2]*2, x.shape[3]*2])(x)
+                x = Resize([x.shape[2]*2, x.shape[3]*2], interpolation=InterpolationMode.NEAREST)(x)
                 x = torch.cat([x, backbone_connection.pop(-1)], dim=1)
 
             elif idx in [4, 6]:
@@ -278,7 +282,7 @@ if __name__ == "__main__":
     first_out = 48
 
     model = YOLOV5m(first_out=first_out, nc=nc, anchors=anchors,
-                    ch=(first_out*4, first_out*8, first_out*16), inference=False)
+                    ch=(first_out*4, first_out*8, first_out*16), inference=True)
 
     start = time.time()
     out = model(x)
@@ -296,10 +300,9 @@ if __name__ == "__main__":
 
     print("feedforward took {:.2f} seconds".format(end - start))
 
-    """
-    print(count_parameters(model))
+    """count_parameters(model)
     check_size(model)
-    strip_model(model)
-    check_size(model)
-    """
+    model.half()
+    check_size(model)"""
+
 
