@@ -19,17 +19,18 @@ def cells_to_bboxes(predictions, anchors, strides, is_pred=False, list_output=Tr
         grid[i], anchor_grid[i] = make_grid(anchors, naxs, ny=ny, nx=nx, stride=stride, i=i)
         if is_pred:
             # formula here: https://github.com/ultralytics/yolov5/issues/471
-            predictions[i] = predictions[i].sigmoid()
-            obj = predictions[i][..., 0:1]
-            xy = (2 * (predictions[i][..., 1:3] - 0.5) + grid[i]) * stride
-            wh = ((2*predictions[i][..., 3:5])**2) * (anchor_grid[i] * stride)
-            best_class = torch.argmax(predictions[i][..., 5:], dim=-1).unsqueeze(-1)
+            xy, wh, conf = predictions[i].sigmoid().split((2, 2, 80 + 1), 4)
+            layer_prediction = predictions[i].sigmoid()
+            obj = layer_prediction[..., 4:5]
+            xy = (2 * (layer_prediction[..., 0:2]) + grid[i] - 0.5) * stride
+            wh = ((2*layer_prediction[..., 2:4])**2) * anchor_grid[i]
+            best_class = torch.argmax(layer_prediction[..., 5:], dim=-1).unsqueeze(-1)
 
         else:
             predictions[i] = predictions[i].to(config.DEVICE, non_blocking=True)
             obj = predictions[i][..., 0:1]
             xy = (predictions[i][..., 1:3] + grid[i]) * stride
-            wh = predictions[i][..., 3:5] * stride  # * anchor_grid[i]
+            wh = predictions[i][..., 3:5] * stride
             best_class = predictions[i][..., 5:6]
 
         scale_bboxes = torch.cat((best_class, obj, xy, wh), dim=-1).reshape(bs, -1, 6)
@@ -141,10 +142,10 @@ def save_predictions(model, loader, folder, epoch, device, filename, num_images=
     model.train()
 
 
-def plot_image(image, boxes):
+def plot_image(image, boxes, coco_80=False):
     """Plots predicted bounding boxes on the image"""
     cmap = plt.get_cmap("tab20b")
-    class_labels = config.COCO_LABELS
+    class_labels = config.COCO80 if coco_80 else config.COCO_LABELS
     colors = [cmap(i) for i in np.linspace(0, 1, len(class_labels))]
     im = np.array(image)
 
