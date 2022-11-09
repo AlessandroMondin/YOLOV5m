@@ -1,6 +1,6 @@
 import json
 import os
-
+from utils.utils import coco91_2_coco80
 from tqdm import tqdm
 import pprint
 import csv
@@ -41,7 +41,9 @@ with open(path, "w") as f:
     json.dump(coco_parsed, f)
 
 
-path = "/Users/Alessandro/Desktop/ML/DL_DATASETS/COCO/annotations/coco_2017_val_AM.json"
+"""
+"""
+path = "/Users/Alessandro/Desktop/ML/DL_DATASETS/COCO/annotations/coco_2017_train_AM.json"
 with open(path, "r") as f:
     annotations = json.load(f)
 
@@ -53,18 +55,19 @@ for annot in loop:
     width = annot["width"]
 
     with open("/Users/Alessandro/Desktop/ML/DL_DATASETS/COCO/"
-              "annotations/coco_2017_val_csv.csv", "a+") as f:
+              "annotations/coco_2017_train_csv.csv", "a+") as f:
         writer = csv.writer(f)
         writer.writerow([img_name, height, width])
         f.close()
 
-    folder_path = "/Users/Alessandro/Desktop/ML/DL_DATASETS/COCO/annotations/coco_2017_val_txt"
+    folder_path = "/Users/Alessandro/Desktop/ML/DL_DATASETS/COCO/annotations/coco_2017_train_txt"
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
 
     with open(os.path.join(folder_path,"{}.txt".format(img_name[:-4])), "w") as fp:
 
-        boxes = [box["box"]+[box["class"]] for box in annot["bboxes"]]
+        #boxes = [box["box"]+[coco91_2_coco80(box["class"])] for box in annot["bboxes"]]
+
         for bbox in annot["bboxes"]:
             box = bbox["box"]
             x, y, w, h = box
@@ -72,11 +75,11 @@ for annot in loop:
             if w > 0.1 and h > 0.1:
                 w = width if w >= width else w
                 h = height if h >= height else h
-                box = [x, y, w, h, bbox["class"]]
-                fp.write(str(box).strip("[]").replace(",","") + "\n")
+                box = [x, y, w, h, coco91_2_coco80(bbox["class"])]
+                fp.write(str(box).strip("[]").replace(",", "") + "\n")
         fp.close()
-"""
 
+"""
 # widths = []
 # heights = []
 
@@ -102,4 +105,4 @@ for annot in loop:
 
 # print("width mean post multi_shape: {:.2f}".format(sum(widths)/len(widths)))
 # print("height mean post multi_shape: {:.2f}".format(sum(heights)/len(heights)))
-# print(Counter(wh))
+# print(Counter(wh))"""

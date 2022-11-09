@@ -142,7 +142,7 @@ def save_predictions(model, loader, folder, epoch, device, filename, num_images=
     model.train()
 
 
-def plot_image(image, boxes, coco_80=False):
+def plot_image(image, boxes, coco_80=True):
     """Plots predicted bounding boxes on the image"""
     cmap = plt.get_cmap("tab20b")
     class_labels = config.COCO80 if coco_80 else config.COCO_LABELS

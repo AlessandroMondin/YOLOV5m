@@ -6,7 +6,7 @@ import warnings
 import pandas as pd
 from PIL import Image
 from torch.utils.data import Dataset, DataLoader
-from utils.utils import resize_image
+from utils.utils import resize_image, coco91_2_coco80
 from utils.bboxes_utils import rescale_bboxes, iou_width_height, coco_to_yolo, non_max_suppression
 from utils.plot_utils import plot_image, cells_to_bboxes
 import config
@@ -389,9 +389,9 @@ if __name__ == "__main__":
 
     dataset = MS_COCO_2017_VALIDATION(num_classes=len(config.COCO_LABELS), anchors=config.ANCHORS,
                                       root_directory=config.ROOT_DIR, transform=config.ADAPTIVE_VAL_TRANSFORM,
-                                      train=True, S=S, rect_training=True, default_size=640, bs=64, coco_128=False)
+                                      train=False, S=S, rect_training=True, default_size=640, bs=64, coco_128=False)
 
-    anchors = torch.tensor(anchors)
+    # anchors = torch.tensor(anchors)
     loader = DataLoader(dataset=dataset, batch_size=8, shuffle=False)
 
     for x, y in loader:
@@ -399,6 +399,6 @@ if __name__ == "__main__":
         """boxes = cells_to_bboxes(y, anchors, S)[0]
         boxes = nms(boxes, iou_threshold=1, threshold=0.7, box_format="midpoint")"""
 
-        boxes = cells_to_bboxes(y, anchors, S, list_output=False)
+        boxes = cells_to_bboxes(y, torch.tensor(anchors), S, list_output=False)
         boxes = non_max_suppression(boxes, iou_threshold=0.6, threshold=0.01, max_detections=300)
         plot_image(x[0].permute(1, 2, 0).to("cpu"), boxes[0])

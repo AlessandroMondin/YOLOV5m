@@ -84,6 +84,36 @@ def resize_image(image, output_size):
     # output size is [width, height]
     return cv2.resize(image, dsize=output_size, interpolation=cv2.INTER_LINEAR)
 
+def coco91_2_coco80(label):
+    # idx & labels below are not present in MS_COCO
+    """11: 'street sign', 25: 'hat', 28: 'shoe', 29: 'eye glasses', 44: 'plate', 65: 'mirror',
+    67: 'window', 68: 'desk', 70: 'door', 82: 'blender', 90: 'hairbrush'"""
+    if 11 < label <= 25:
+        return label - 1
+    elif 25 < label <= 28:
+        return label - 2
+    elif 28 < label <= 29:
+        return label - 3
+    elif 29 < label <= 44:
+        return label - 4
+    elif 44 < label <= 65:
+        return label - 5
+    elif 65 < label <= 67:
+        return label - 6
+    elif 67 < label <= 68:
+        return label - 7
+    elif 68 < label <= 70:
+        return label - 8
+    elif 70 < label <= 82:
+        return label - 9
+    elif 82 < label <= 90:
+        return label - 10
+    elif label >= 90:
+        return label - 11
+    else:
+        return label
+
+
 def seed_everything(seed=42):
     os.environ['PYTHONHASHSEED'] = str(seed)
     np.random.seed(seed)

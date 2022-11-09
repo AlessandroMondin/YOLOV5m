@@ -9,7 +9,7 @@ from torchvision import transforms
 from utils.bboxes_utils import non_max_suppression
 from utils.plot_utils import cells_to_bboxes, plot_image
 
-
+# ULTRALYTICS NOT USED
 def letterbox(im, new_shape=(640, 640), color=(114, 114, 114), auto=True, scaleFill=False, scaleup=True, stride=32):
     # Resize and pad image while meeting stride-multiple constraints
     shape = im.shape[:2]  # current shape [height, width]
@@ -46,7 +46,7 @@ def letterbox(im, new_shape=(640, 640), color=(114, 114, 114), auto=True, scaleF
 if __name__ == "__main__":
 
     nc = 80
-    anchors = torch.tensor(config.ANCHORS)
+    anchors = config.ANCHORS
     first_out = 48
     S = [8, 16, 32]
 
@@ -57,6 +57,7 @@ if __name__ == "__main__":
 
     pt_values = pretrained_weights.values()
 
+    # Manually loading ultralytics weights in my architecture
     state_dict = model.state_dict()
     layers_loaded = []
     num_layers_loaded = 0
@@ -64,14 +65,13 @@ if __name__ == "__main__":
         for my_layer, my_weight in state_dict.items():
             if weight.shape == my_weight.shape:
                 if my_layer not in layers_loaded:
-                    #print(my_layer, "---", layer)
                     state_dict[my_layer] = weight
                     num_layers_loaded += 1
                     layers_loaded.append(my_layer)
                     break
 
-    print(num_layers_loaded)
-    print(len(layers_loaded))
+    # print(num_layers_loaded)
+    # print(len(layers_loaded))
 
     equal_layers = 0
     state_dict_values = list(state_dict.values())
@@ -82,26 +82,19 @@ if __name__ == "__main__":
 
     # print(equal_layers)
 
+    # torch.save(state_dict, "yolov5_my_arch_ultra_w.pt")
     model.load_state_dict(state_dict=state_dict, strict=True)
     model.eval()
 
-
-    #img = np.array(Image.open("ultralytics_files/test_images/zidane.jpg").convert("RGB"))
-    img = cv2.imread("ultralytics_files/test_images/zidane.jpg")
-    img = letterbox(img, [640, 640], stride=32, auto=True)[0]  # padded resize
-    img = img.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
-    img = np.ascontiguousarray(img)  # contiguous
-    img = torch.from_numpy(img).to(config.DEVICE)
-    img = img.float()
-    img /= 255
-    tg_size = (384, 640)
-    #tg_size = (img.shape[2]//32*32, img.shape[3]//32*32)
+    img = np.array(Image.open("ultralytics_files/test_images/zidane.jpg").convert("RGB"))
+    img = transforms.ToTensor()(img)
     if len(img.shape) == 3:
         img = img[None]  # expand for batch dim
-
+    tg_size = (384, 640)
     img = transforms.Resize(tg_size, interpolation=transforms.InterpolationMode.NEAREST)(img)
+    with torch.no_grad():
+        out = model(img)
 
-    out = model(img)
     boxes = cells_to_bboxes(out, model.head.anchors, S, list_output=False, is_pred=True)
     boxes = non_max_suppression(boxes, iou_threshold=0.6, threshold=.25, max_detections=300)
-    plot_image(img[0].permute(1, 2, 0).to("cpu"), boxes[0], coco_80=True)
+    plot_image(img[0].permute(1, 2, 0).to("cpu"), boxes[0])

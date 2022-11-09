@@ -24,6 +24,8 @@ def arg_parser():
     parser.add_argument("--nw", type=int, default=4, help="Set number of workers")
     parser.add_argument("--resume", action='store_true', help="Resume training on a saved checkpoint")
     parser.add_argument("--filename", type=str, help="Model name to use for resume training")
+    parser.add_argument("--load_coco_weights", action='store_true', help="Loads Ultralytics weights, (~273 epochs on MS COCO)")
+    parser.add_argument("--only_eval", action='store_true', help="Performs only the evaluation (no training loop")
 
     return parser.parse_args()
 
@@ -50,6 +52,9 @@ def main(opt):
 
         load_model_checkpoint(opt.filename, model)
         load_optim_checkpoint(opt.filename, optim)
+
+    if opt.load_coco_weights:
+        model.load_state_dict(torch.load("yolov5_my_arch_ultra_w.pt"), strict=False)
 
     # if loading from scratch
     else:
@@ -79,9 +84,10 @@ def main(opt):
 
         model.train()
 
-        train_loop(model=model, loader=train_loader, loss_fn=loss_fn, optim=optim,
-                   scaler=scaler, epoch=0+starting_epoch, num_epochs=opt.epochs + starting_epoch,
-                   multi_scale_training=not rect_training)
+        if not opt.only_eval:
+            train_loop(model=model, loader=train_loader, loss_fn=loss_fn, optim=optim,
+                       scaler=scaler, epoch=0+starting_epoch, num_epochs=opt.epochs + starting_epoch,
+                       multi_scale_training=not rect_training)
 
         model.eval()
 
