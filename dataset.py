@@ -323,7 +323,7 @@ class MS_COCO_2017_VALIDATION(Dataset):
                 # not understood
 
                 elif not anchor_taken and iou_anchors[anchor_idx] > self.ignore_iou_thresh:
-                    targets[scale_idx][anchor_on_scale, i, j, 0] = -1  # ignore prediction
+                    targets[scale_idx][anchor_on_scale, i, j, 4] = -1  # ignore prediction
 
         return img, tuple(targets)
 
