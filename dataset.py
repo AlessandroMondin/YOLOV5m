@@ -302,7 +302,7 @@ class MS_COCO_2017_VALIDATION(Dataset):
                     # here below we are going to populate all the
                     # 6 elements of targets[scale_idx][anchor_on_scale, i, j]
                     # setting p_o of the chosen cell = 1 since there is an object there
-                    targets[scale_idx][anchor_on_scale, i, j, 0] = 1
+                    targets[scale_idx][anchor_on_scale, i, j, 4] = 1
                     # setting the values of the coordinates x, y
                     # i.e (6.5 - 6) = 0.5 --> x_coord is in the middle of this particular cell
                     # both are between [0,1]
@@ -317,7 +317,7 @@ class MS_COCO_2017_VALIDATION(Dataset):
                     box_coordinates = torch.tensor(
                         [x_cell, y_cell, width_cell, height_cell]
                     )
-                    targets[scale_idx][anchor_on_scale, i, j, 1:5] = box_coordinates
+                    targets[scale_idx][anchor_on_scale, i, j, 0:4] = box_coordinates
                     targets[scale_idx][anchor_on_scale, i, j, 5] = int(class_label)
                     has_anchor[scale_idx] = True
                 # not understood

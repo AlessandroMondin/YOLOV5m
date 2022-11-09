@@ -19,7 +19,7 @@ def cells_to_bboxes(predictions, anchors, strides, is_pred=False, list_output=Tr
         grid[i], anchor_grid[i] = make_grid(anchors, naxs, ny=ny, nx=nx, stride=stride, i=i)
         if is_pred:
             # formula here: https://github.com/ultralytics/yolov5/issues/471
-            xy, wh, conf = predictions[i].sigmoid().split((2, 2, 80 + 1), 4)
+            #xy, wh, conf = predictions[i].sigmoid().split((2, 2, 80 + 1), 4)
             layer_prediction = predictions[i].sigmoid()
             obj = layer_prediction[..., 4:5]
             xy = (2 * (layer_prediction[..., 0:2]) + grid[i] - 0.5) * stride
@@ -28,9 +28,9 @@ def cells_to_bboxes(predictions, anchors, strides, is_pred=False, list_output=Tr
 
         else:
             predictions[i] = predictions[i].to(config.DEVICE, non_blocking=True)
-            obj = predictions[i][..., 0:1]
-            xy = (predictions[i][..., 1:3] + grid[i]) * stride
-            wh = predictions[i][..., 3:5] * stride
+            obj = predictions[i][..., 4:5]
+            xy = (predictions[i][..., 0:2] + grid[i]) * stride
+            wh = predictions[i][..., 2:4] * stride
             best_class = predictions[i][..., 5:6]
 
         scale_bboxes = torch.cat((best_class, obj, xy, wh), dim=-1).reshape(bs, -1, 6)

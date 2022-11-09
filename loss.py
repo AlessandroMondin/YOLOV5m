@@ -204,7 +204,7 @@ class YOLO_LOSS:
                     # here below we are going to populate all the
                     # 6 elements of targets[scale_idx][anchor_on_scale, i, j]
                     # setting p_o of the chosen cell = 1 since there is an object there
-                    targets[scale_idx][anchor_on_scale, i, j, 0] = 1
+                    targets[scale_idx][anchor_on_scale, i, j, 4] = 1
                     # setting the values of the coordinates x, y
                     # i.e (6.5 - 6) = 0.5 --> x_coord is in the middle of this particular cell
                     # both are between [0,1]
@@ -219,7 +219,7 @@ class YOLO_LOSS:
                     box_coordinates = torch.tensor(
                         [x_cell, y_cell, width_cell, height_cell]
                     )
-                    targets[scale_idx][anchor_on_scale, i, j, 1:5] = box_coordinates
+                    targets[scale_idx][anchor_on_scale, i, j, 0:4] = box_coordinates
                     targets[scale_idx][anchor_on_scale, i, j, 5] = int(class_label)
                     has_anchor[scale_idx] = True
                 # not understood
@@ -236,19 +236,19 @@ class YOLO_LOSS:
         bs = preds.shape[0]
         anchors = anchors.reshape(1, 3, 1, 1, 2)
 
-        pxy = (preds[..., 1:3].sigmoid() * 2) - 0.5
-        pwh = ((preds[..., 3:5].sigmoid() * 2) ** 2) * anchors
+        pxy = (preds[..., 0:2].sigmoid() * 2) - 0.5
+        pwh = ((preds[..., 2:4].sigmoid() * 2) ** 2) * anchors
         pbox = torch.cat((pxy, pwh), dim=-1)
-        tbox = targets[..., 1:5]
+        tbox = targets[..., 0:4]
 
         # used for class loss
-        obj = targets[..., 0] == 1
+        obj = targets[..., 4] == 1
 
         # ======================= #
         #   FOR OBJECTNESS SCORE    #
         # ======================= #
 
-        lobj = self.BCE_obj(preds[..., 0:1], targets[..., 0:1]) * balance
+        lobj = self.BCE_obj(preds[..., 4:5], targets[..., 4:5]) * balance
 
         # ======================== #
         #   FOR BOX COORDINATES    #
