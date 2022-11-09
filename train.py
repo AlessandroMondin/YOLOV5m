@@ -35,7 +35,7 @@ def main(opt):
     first_out = config.FIRST_OUT
     scaler = torch.cuda.amp.GradScaler()
 
-    model = YOLOV5m(first_out=first_out, nc=len(config.COCO_LABELS), anchors=config.ANCHORS,
+    model = YOLOV5m(first_out=first_out, nc=len(config.COCO80), anchors=config.ANCHORS,
                     ch=(first_out * 4, first_out * 8, first_out * 16), inference=False).to(config.DEVICE)
 
     optim = Adam(model.parameters(), lr=config.LEARNING_RATE, weight_decay=config.WEIGHT_DECAY)
@@ -55,8 +55,9 @@ def main(opt):
 
     if opt.load_coco_weights:
         model.load_state_dict(torch.load("yolov5_my_arch_ultra_w.pt"), strict=False)
+        filename = "ULTRALYTICS_PRETRAINED"
 
-    # if loading from scratch
+    # elif
     else:
         if "model" not in "".join(os.listdir("SAVED_CHECKPOINT")):
             filename = "model_1"

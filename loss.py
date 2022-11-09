@@ -137,7 +137,7 @@ class YOLO_LOSS:
                              input_tensor[i].shape[3], 6))
                 for i in range(len(self.S))
             ]
-            # 5 + len(config.COCO_LABELS)
+
         else:
             targets = [torch.zeros((self.num_anchors_per_scale, int(input_tensor.shape[2]/S),
                                     int(input_tensor.shape[3]/S), 6)) for S in self.S]
@@ -303,7 +303,7 @@ if __name__ == "__main__":
     model = YOLOV5m(first_out=first_out, nc=nc, anchors=anchors,
                     ch=(first_out*4, first_out*8, first_out*16), inference=False).to(config.DEVICE)
 
-    dataset = MS_COCO_2017(num_classes=len(config.COCO_LABELS), anchors=config.ANCHORS,
+    dataset = MS_COCO_2017(num_classes=len(config.COCO80), anchors=config.ANCHORS,
                            root_directory=config.ROOT_DIR, transform=config.ADAPTIVE_VAL_TRANSFORM,
                            train=True, S=S, rect_training=True, default_size=640, bs=8)
 

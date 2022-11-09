@@ -108,7 +108,7 @@ def coco91_2_coco80(label):
         return label - 9
     elif 82 < label <= 90:
         return label - 10
-    elif label >= 90:
+    elif label > 90:
         return label - 11
     else:
         return label

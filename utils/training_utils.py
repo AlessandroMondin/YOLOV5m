@@ -46,12 +46,12 @@ def get_loaders(
     val_augmentation = config.ADAPTIVE_VAL_TRANSFORM if rect_training else config.VAL_TRANSFORM
 
     # bs here is not batch_size, check class method "adaptive_shape" to check behavior
-    train_ds = MS_COCO_2017(num_classes=len(config.COCO_LABELS), anchors=config.ANCHORS,
+    train_ds = MS_COCO_2017(num_classes=len(config.COCO80), anchors=config.ANCHORS,
                             root_directory=db_root_dir, transform=train_augmentation,
                             train=True, S=S, rect_training=rect_training, bs=64,
                             default_size=640)
 
-    val_ds = MS_COCO_2017_VALIDATION(num_classes=len(config.COCO_LABELS), anchors=config.ANCHORS,
+    val_ds = MS_COCO_2017_VALIDATION(num_classes=len(config.COCO80), anchors=config.ANCHORS,
                                      root_directory=db_root_dir, transform=val_augmentation,
                                      train=False, S=S, rect_training=rect_training, bs=64,
                                      default_size=640, coco_128=coco128val)
