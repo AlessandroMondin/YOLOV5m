@@ -149,7 +149,7 @@ def non_max_suppression_aladdin(bboxes, iou_threshold, threshold, box_format="co
 
     return bboxes_after_nms
 
-def non_max_suppression(batch_bboxes, iou_threshold, threshold, max_detections=300):
+def non_max_suppression(batch_bboxes, iou_threshold, threshold, max_detections=300, tolist=True):
 
     """new_bboxes = []
     for box in bboxes:
@@ -173,9 +173,11 @@ def non_max_suppression(batch_bboxes, iou_threshold, threshold, max_detections=3
         boxes[..., 4:5] = boxes[..., 4:5] + boxes[..., 2:3]
 
         indices = nms(boxes=boxes[..., 2:] + boxes[..., 0:1], scores=boxes[..., 1], iou_threshold=iou_threshold)
-        bboxes_after_nms.append(boxes[indices].tolist())
+        bboxes_after_nms.append(
+            boxes[indices].tolist() if tolist else boxes[indices]
+        )
 
-    return bboxes_after_nms
+    return bboxes_after_nms if tolist else torch.cat(bboxes_after_nms, dim=0)
 
 
 

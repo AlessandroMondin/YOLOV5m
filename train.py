@@ -12,7 +12,6 @@ from utils.plot_utils import save_predictions
 import config
 
 def arg_parser():
-
     parser = argparse.ArgumentParser()
     parser.add_argument("--coco128val", action='store_true', help=" Validate on COCO128")
     parser.add_argument("--nosaveimgs", action='store_true', help="Don't save images predictions in SAVED_IMAGES folder")
@@ -54,7 +53,7 @@ def main(opt):
         load_optim_checkpoint(opt.filename, optim)
 
     if opt.load_coco_weights:
-        model.load_state_dict(torch.load("yolov5_my_arch_ultra_w.pt"), strict=False)
+        model.load_state_dict(torch.load("yolov5_my_arch_ultra_w.pt"), strict=True)
         filename = "ULTRALYTICS_PRETRAINED"
 
     # elif
@@ -92,10 +91,9 @@ def main(opt):
 
         model.eval()
 
-        evaluate.check_class_accuracy(model, val_loader)
+        # evaluate.check_class_accuracy(model, val_loader)
 
-        evaluate.map_pr_rec(model, val_loader, anchors=model.head.anchors,
-                            num_classes=model.head.nc, epoch=epoch+1)
+        evaluate.map_pr_rec(model, val_loader, anchors=model.head.anchors, epoch=epoch+1)
 
         # NMS WRONGLY MODIFIED TO TEST THIS FEATURE!!
         if not opt.nosaveimgs:
@@ -113,3 +111,4 @@ def main(opt):
 if __name__ == "__main__":
     parser = arg_parser()
     main(parser)
+
