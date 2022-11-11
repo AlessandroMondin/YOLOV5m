@@ -97,7 +97,6 @@ class YOLO_EVAL:
         model.eval()
 
         # 1) GET EVALUATION BBOXES
-        train_idx = 0
         all_predictions = []
         all_ground_truths = []
         for batch_idx, (x, labels) in enumerate(tqdm(loader)):
@@ -138,7 +137,7 @@ class YOLO_EVAL:
                 labels=targets[..., 0],
             )
         ]
-        metric = MeanAveragePrecision()
+        metric = MeanAveragePrecision(iou_thresholds=[.5, .75], max_detection_thresholds=[1000])
         metric.update(preds, target)
 
         metrics = metric.compute()
@@ -156,5 +155,3 @@ class YOLO_EVAL:
                                  self.obj_accuracy, map50.item(), map75.item()])
 
         model.train()
-
-        return map50, map75
