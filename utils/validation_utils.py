@@ -29,8 +29,8 @@ class YOLO_EVAL:
                 with open(os.path.join(folder, "eval.csv"), "w") as f:
                     writer = csv.writer(f)
                     writer.writerow(["epoch", "class_accuracy",
-                                     "noobj_accuracy", "obj_accuracy",
-                                     "map50", "map75"])
+                                     "obj_accuracy", "map50", "map75"])
+                    
                     print("--------------------------------------------------------------------------------------")
                     print(f'Eval Logs will be saved in {os.path.join("train_eval_metrics", filename, "eval.csv")}')
                     print("--------------------------------------------------------------------------------------")
@@ -45,9 +45,8 @@ class YOLO_EVAL:
 
     def check_class_accuracy(self, model, loader):
         model.eval()
-        print(".. Computing: class, no-obj and obj accuracies ..")
+        print(".. Computing: class and obj accuracies ..")
         tot_class_preds, correct_class = 0, 0
-        tot_noobj, correct_noobj = 0, 0
         tot_obj, correct_obj = 0, 0
 
         for idx, (images, y) in enumerate(tqdm(loader)):
@@ -69,29 +68,24 @@ class YOLO_EVAL:
                 obj_preds = torch.sigmoid(out[i][..., 0]) > self.conf_threshold
                 correct_obj += torch.sum(obj_preds[obj] == y[i][..., 4][obj])
                 tot_obj += torch.sum(obj)
-                correct_noobj += torch.sum(obj_preds[noobj] == y[i][..., 4][noobj])
-                tot_noobj += torch.sum(noobj)
 
         time.sleep(1)  # to not broke tqdm logger
 
         class_accuracy = (correct_class / (tot_class_preds + 1e-16))
-        noobj_accureacy = (correct_noobj / (tot_noobj + 1e-16))
         obj_accuracy = (correct_obj / (tot_obj + 1e-16))
 
         if self.save_logs:
             self.class_accuracy = round(float(class_accuracy), 3)
-            self.noobj_accuracy = round(float(noobj_accureacy), 3)
             self.obj_accuracy = round(float(obj_accuracy), 3)
 
         print("Class accuracy: {:.2f}%".format(class_accuracy * 100))
-        print("No obj accuracy: {:.2f}%".format(noobj_accureacy * 100))
         print("Obj accuracy: {:.2f}%".format(obj_accuracy * 100))
 
         model.train()
 
     def map_pr_rec(self, model, loader, anchors, epoch):
 
-        print(".. Getting Evaluation bboxes to compute MAP, Precision and Recall ..")
+        print(".. Getting Evaluation bboxes to compute MAP..")
         # make sure model is in eval before get bboxes
 
         model.eval()
@@ -110,11 +104,11 @@ class YOLO_EVAL:
             # we just want one bbox for each label, not one for each scale
             true_bboxes = cells_to_bboxes(labels, anchors, strides=model.head.stride, is_pred=False, list_output=False)
 
-            pred_boxes = non_max_suppression(pred_bboxes, iou_threshold=self.nms_iou_thresh,
-                                             threshold=self.conf_threshold, tolist=False)
+            pred_boxes = non_max_suppression(pred_bboxes, iou_threshold=self.nms_iou_thresh, threshold=self.conf_threshold, 
+                                             tolist=False, max_detections=5000)
 
             true_bboxes = non_max_suppression(true_bboxes, iou_threshold=self.nms_iou_thresh,
-                                              threshold=self.conf_threshold, tolist=False)
+                                              threshold=self.conf_threshold, tolist=False, max_detections=5000)
 
             all_predictions.append(pred_boxes)
 
@@ -137,10 +131,14 @@ class YOLO_EVAL:
                 labels=targets[..., 0],
             )
         ]
-        metric = MeanAveragePrecision(iou_thresholds=[.5, .75], max_detection_thresholds=[1000])
+        
+        print("...Computing MAP ...")  
+        metric = MeanAveragePrecision(max_detection_thresholds=[1000])
         metric.update(preds, target)
 
         metrics = metric.compute()
+                          
+        print(metrics)                  
 
         map50 = metrics["map_50"]
         map75 = metrics["map_75"]
@@ -151,7 +149,7 @@ class YOLO_EVAL:
         if self.save_logs:
             with open(os.path.join("train_eval_metrics", self.filename, "eval.csv"), "a") as f:
                 writer = csv.writer(f)
-                writer.writerow([epoch, self.class_accuracy, self.noobj_accuracy,
-                                 self.obj_accuracy, map50.item(), map75.item()])
+                writer.writerow([epoch, self.class_accuracy, self.obj_accuracy,
+                                 map50.item(), map75.item()])
 
         model.train()
