@@ -93,7 +93,11 @@ class MS_COCO_2017(Dataset):
             img = augmentations["image"]
             bboxes = augmentations["bboxes"]
 
-        return img, torch.tensor(bboxes)
+        bboxes = torch.tensor(bboxes).roll(dims=1, shifts=1)
+        out_bboxes = torch.zeros((bboxes.shape[0], 6))
+        out_bboxes[..., 1:] = bboxes
+
+        return img, out_bboxes
 
     # this method modifies the target width and height of
     # the images by reshaping them so that the largest size of
@@ -144,4 +148,7 @@ class MS_COCO_2017(Dataset):
 
     @staticmethod
     def collate_fn(batch):
-        return tuple(zip(*batch))
+        im, label = zip(*batch)  # transposed
+        for i, lb in enumerate(label):
+            lb[:, 0] = i  # add target image index for build_targets()
+        return torch.stack(im, 0), torch.cat(label, 0)
