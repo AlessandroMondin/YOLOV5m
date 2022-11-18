@@ -389,7 +389,7 @@ if __name__ == "__main__":
 
     dataset = MS_COCO_2017_VALIDATION(num_classes=len(config.COCO80), anchors=config.ANCHORS,
                                       root_directory=config.ROOT_DIR, transform=config.ADAPTIVE_VAL_TRANSFORM,
-                                      train=False, S=S, rect_training=True, default_size=640, bs=64, coco_128=False)
+                                      train=True, S=S, rect_training=True, default_size=640, bs=64, coco_128=False)
 
     # anchors = torch.tensor(anchors)
     loader = DataLoader(dataset=dataset, batch_size=8, shuffle=False)

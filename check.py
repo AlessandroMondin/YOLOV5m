@@ -12,7 +12,14 @@ from utils.plot_utils import plot_image
 from utils.utils import resize_image, coco91_2_coco80
 from utils.bboxes_utils import rescale_bboxes, coco_to_yolo
 
-print(coco91_2_coco80())
+a = 1
+
+b = a
+
+a += 1
+
+print(b)
+print(a)
 
 
 

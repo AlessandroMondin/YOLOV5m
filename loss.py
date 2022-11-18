@@ -235,20 +235,12 @@ class YOLO_LOSS:
         # originally anchors have shape (3,2) --> 3 set of anchors of width and height
         bs = preds.shape[0]
         anchors = anchors.reshape(1, 3, 1, 1, 2)
+        obj = targets[..., 4] == 1
 
         pxy = (preds[..., 0:2].sigmoid() * 2) - 0.5
         pwh = ((preds[..., 2:4].sigmoid() * 2) ** 2) * anchors
-        pbox = torch.cat((pxy, pwh), dim=-1)
-        tbox = targets[..., 0:4]
-
-        # used for class loss
-        obj = targets[..., 4] == 1
-
-        # ======================= #
-        #   FOR OBJECTNESS SCORE    #
-        # ======================= #
-
-        lobj = self.BCE_obj(preds[..., 4:5], targets[..., 4:5]) * balance
+        pbox = torch.cat((pxy[obj], pwh[obj]), dim=-1)
+        tbox = targets[..., 0:4][obj]
 
         # ======================== #
         #   FOR BOX COORDINATES    #
@@ -257,6 +249,13 @@ class YOLO_LOSS:
         iou = intersection_over_union(pbox, tbox, GIoU=True).squeeze()  # iou(prediction, target)
         lbox = (1.0 - iou).mean()  # iou loss
 
+        # ======================= #
+        #   FOR OBJECTNESS SCORE    #
+        # ======================= #
+        iou = iou.detach().clamp(0)
+        targets[..., 4][obj] *= iou
+
+        lobj = self.BCE_obj(preds[..., 4], targets[..., 4]) * balance
         # ================== #
         #   FOR CLASS LOSS   #
         # ================== #
@@ -265,11 +264,7 @@ class YOLO_LOSS:
 
         tcls = torch.zeros_like(preds[..., 5:][obj], device=config.DEVICE)
 
-        # https://discuss.pytorch.org/t/fill-value-to-matrix-based-on-index/34698/3
         tcls[torch.arange(tcls.size(0)), targets[..., 5][obj].long()] = 1.0  # for torch > 1.11.0
-        # that I cannot use on the ml.p2.xlarge in SageMaker, time to learn to use Docker..
-                          
-        #tcls[torch.arange(tcls.size(0)), targets[..., 5][obj].long()] = 1.0  # torch==1.10.2
 
         lcls = self.BCE_cls(preds[..., 5:][obj], tcls)  # BCE
 
@@ -294,13 +289,12 @@ if __name__ == "__main__":
     batch_size = 8
     image_height = 640
     image_width = 640
-    nc = 91
     S = [8, 16, 32]
 
     anchors = config.ANCHORS
     first_out = 48
 
-    model = YOLOV5m(first_out=first_out, nc=nc, anchors=anchors,
+    model = YOLOV5m(first_out=first_out, nc=len(config.COCO80), anchors=anchors,
                     ch=(first_out*4, first_out*8, first_out*16), inference=False).to(config.DEVICE)
 
     dataset = MS_COCO_2017(num_classes=len(config.COCO80), anchors=config.ANCHORS,

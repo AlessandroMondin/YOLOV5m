@@ -86,7 +86,7 @@ class ComputeLoss:
 
                 # Classification
                 if self.nc > 1:  # cls loss (only if multiple classes)
-                    t = torch.full_like(pcls, device=self.device)  # targets
+                    t = torch.zeros_like(pcls, device=self.device)  # targets
                     t[range(n), tcls[i]] = 1
                     lcls += self.BCEcls(pcls, t)  # BCE
 
@@ -112,7 +112,7 @@ class ComputeLoss:
                     f.close()
 
         bs = tobj.shape[0]  # batch size
-
+        print((lbox + lobj + lcls) * bs)
         return (lbox + lobj + lcls) * bs, torch.cat((lbox, lobj, lcls)).detach()
 
     def build_targets(self, p, targets):
@@ -121,7 +121,7 @@ class ComputeLoss:
         # and all the images contain at least 1 target, the value of "image" will be 0,1,2,3
         na, nt = self.na, targets.shape[0]  # number of anchors (x scale), targets
         tcls, tbox, indices, anch = [], [], [], []
-        gain = torch.ones(7, device=self.device)  # normalized to gridspace gain
+        gain = torch.ones(7, device=self.device)  # normalized to grid_space gain
 
         ai = torch.arange(na, device=self.device).float().view(na, 1).repeat(1, nt)  # same as .repeat_interleave(nt)
         # torch.arange(na, device=self.device) i.e --> tensor([0, 1, 2]), shape 3
@@ -312,7 +312,7 @@ if __name__ == "__main__":
     batch_size = 8
     image_height = 640
     image_width = 640
-    nc = 91
+    nc = len(config.COCO80)
     S = [8, 16, 32]
 
     anchors = config.ANCHORS
@@ -321,20 +321,20 @@ if __name__ == "__main__":
     model = YOLOV5m(first_out=first_out, nc=nc, anchors=anchors,
                     ch=(first_out * 4, first_out * 8, first_out * 16), inference=False).to(config.DEVICE)
 
-    dataset = MS_COCO_2017(num_classes=len(config.COCO80), anchors=config.ANCHORS,
-                           root_directory=config.ROOT_DIR, transform=config.ADAPTIVE_VAL_TRANSFORM,
-                           train=True, S=S, rect_training=True, default_size=640, bs=8)
+    dataset = MS_COCO_2017(num_classes=nc, anchors=config.ANCHORS,
+                           root_directory=config.ROOT_DIR, transform=config.VAL_TRANSFORM,
+                           train=True, S=S, rect_training=False, default_size=640, bs=64)
 
     anchors = torch.tensor(anchors)
 
-    loss = ComputeLoss(model, save_logs=False, filename="none", resume="False")
+    loss_fn = ComputeLoss(model, save_logs=False, filename="none", resume="False")
 
     loader = DataLoader(dataset=dataset, batch_size=4, shuffle=False, collate_fn=dataset.collate_fn)
 
     for images, bboxes in loader:
 
         preds = model(images)
-        loss = loss(preds, bboxes, batch_idx=None, epoch=None)
+        loss = loss_fn(preds, bboxes, batch_idx=None, epoch=None)
         print(loss)
 
 

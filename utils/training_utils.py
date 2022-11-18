@@ -87,7 +87,7 @@ def train_loop(model, loader, optim, loss_fn, scaler, epoch, num_epochs, multi_s
     # frequency of scaler.step() (optim.step()) depends on the batch_size
     # check here: https://github.com/ultralytics/yolov5/issues/2377
     nbs = 64  # nominal batch size
-    batch_size = next(iter(loader))[0][0].shape[0]
+    batch_size = len(next(iter(loader))[0])
     accumulate = max(round(nbs / batch_size), 1)  # accumulate loss before optimizing
     last_opt_step = -1
 
@@ -105,10 +105,11 @@ def train_loop(model, loader, optim, loss_fn, scaler, epoch, num_epochs, multi_s
         images = images.to(config.DEVICE, non_blocking=True)
         # BBOXES AND CLASSES ARE PUSHED to.(DEVICE) INSIDE THE LOSS_FN
 
-        # float16 training: reduces the load inside the VRAM and speeds up the training
+        # If I had a V100...
         with torch.cuda.amp.autocast():
             out = model(images)
             loss = loss_fn(out, bboxes, pred_size=images.shape[2:4], batch_idx=idx, epoch=epoch)
+            #print(loss)
             avg_batches_loss += loss
 
         # backpropagation

@@ -2,7 +2,7 @@ import json
 import os
 from utils.utils import coco91_2_coco80
 from tqdm import tqdm
-import pprint
+import glob
 import csv
 from time import sleep
 """
@@ -44,39 +44,40 @@ with open(path, "w") as f:
 """
 """
 
-path = "/Users/Alessandro/Desktop/ML/DL_DATASETS/COCO/annotations/coco_2017_val_AM.json"
+
+path = "/Users/Alessandro/Desktop/ML/DL_DATASETS/COCO/annotations/coco_2017_train_AM.json"
 with open(path, "r") as f:
     annotations = json.load(f)
 
 loop = tqdm(annotations)
 
-for annot in loop:
-    img_name = annot["img_name"]
-    height = annot["height"]
-    width = annot["width"]
+for idx, annot in enumerate(loop):
+    if annot["img_name"] in os.listdir("../datasets/coco128/images/train2017"):
+        img_name = annot["img_name"]
+        height = annot["height"]
+        width = annot["width"]
 
-    with open("/Users/Alessandro/Desktop/ML/DL_DATASETS/COCO/"
-              "annotations/coco_2017_val_csv.csv", "a+") as f:
-        writer = csv.writer(f)
-        writer.writerow([img_name, height, width])
-        f.close()
+        with open("/Users/Alessandro/Desktop/ML/DL_DATASETS/COCO/"
+                  "annotations/coco_2017_coco128_csv.csv", "a+") as f:
+            writer = csv.writer(f)
+            writer.writerow([img_name, height, width])
+            f.close()
 
-    folder_path = "/Users/Alessandro/Desktop/ML/DL_DATASETS/COCO/annotations/coco_2017_val_txt"
-    if not os.path.exists(folder_path):
-        os.makedirs(folder_path)
+        folder_path = "/Users/Alessandro/Desktop/ML/DL_DATASETS/COCO/annotations/coco_2017_coco128_txt"
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
 
-    with open(os.path.join(folder_path,"{}.txt".format(img_name[:-4])), "w") as fp:
-
-        for bbox in annot["bboxes"]:
-            box = bbox["box"]
-            x, y, w, h = box
-            # cleans empty bboxes
-            if w > 0.1 and h > 0.1:
-                w = width if w >= width else w
-                h = height if h >= height else h
-                box = [x, y, w, h, coco91_2_coco80(bbox["class"])]
-                fp.write(str(box).strip("[]").replace(",", "") + "\n")
-        fp.close()
+        with open(os.path.join(folder_path, "{}.txt".format(img_name[:-4])), "w") as fp:
+            for bbox in annot["bboxes"]:
+                box = bbox["box"]
+                x, y, w, h = box
+                # cleans empty bboxes
+                if w > 0.1 and h > 0.1:
+                    w = width if w >= width else w
+                    h = height if h >= height else h
+                    box = [x, y, w, h, coco91_2_coco80(bbox["class"])]
+                    fp.write(str(box).strip("[]").replace(",", "") + "\n")
+            fp.close()
 """
 
 # widths = []

@@ -7,7 +7,7 @@ import pandas as pd
 from PIL import Image
 from torch.utils.data import Dataset, DataLoader
 from utils.utils import resize_image
-from utils.bboxes_utils import rescale_bboxes, iou_width_height, coco_to_yolo, non_max_suppression
+from utils.bboxes_utils import rescale_bboxes, coco_to_yolo_tensors
 from utils.plot_utils import plot_image, cells_to_bboxes
 import config
 
@@ -57,7 +57,7 @@ class MS_COCO_2017(Dataset):
 
         self.fname = fname
 
-        self.annotations = pd.read_csv(os.path.join(root_directory, "annotations", annot_file), header=None)
+        self.annotations = pd.read_csv(os.path.join(root_directory, "annotations", annot_file), header=None).sort_values(by=[0])
         self.len_ann = len(self.annotations)
         if rect_training:
             self.annotations = self.adaptive_shape(self.annotations, bs)
@@ -93,9 +93,16 @@ class MS_COCO_2017(Dataset):
             img = augmentations["image"]
             bboxes = augmentations["bboxes"]
 
-        bboxes = torch.tensor(bboxes).roll(dims=1, shifts=1)
-        out_bboxes = torch.zeros((bboxes.shape[0], 6))
-        out_bboxes[..., 1:] = bboxes
+        if len(bboxes) > 0:
+            bboxes = torch.tensor(bboxes).roll(dims=1, shifts=1)
+            yolo_xywh = coco_to_yolo_tensors(bboxes[..., 0:4], image_w=img.shape[2], image_h=img.shape[1])
+            bboxes[..., 1:] = yolo_xywh
+            out_bboxes = torch.zeros((bboxes.shape[0], 6))
+            out_bboxes[..., 1:] = bboxes
+        else:
+            out_bboxes = torch.zeros((1, 6))
+
+        out_bboxes[..., 1] -= 1
 
         return img, out_bboxes
 
