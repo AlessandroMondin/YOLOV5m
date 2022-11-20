@@ -87,10 +87,10 @@ def coco_to_yolo(bbox, image_w=640, image_h=640):
     #return [((x1 + w)/2)/image_w, ((y1 + h)/2)/image_h, w/image_w, h/image_h]
     return [((2*x1 + w)/(2*image_w)), ((2*y1 + h)/(2*image_h)), w/image_w, h/image_h]
 
-def coco_to_yolo_tensors(bbox, image_w=640, image_h=640):
+def coco_to_yolo_tensors(bbox, w0=640, h0=640):
     x1, y1, w, h = torch.chunk(bbox, 4, dim=1)
     #return [((x1 + w)/2)/image_w, ((y1 + h)/2)/image_h, w/image_w, h/image_h]
-    return torch.cat([((2*x1 + w)/(2*image_w)), ((2*y1 + h)/(2*image_h)), w/image_w, h/image_h], dim=1)
+    return torch.cat([((2*x1 + w)/(2*w0)), ((2*y1 + h)/(2*h0)), w/w0, h/h0], dim=1)
 
 
 # rescales bboxes from an image_size to another image_size

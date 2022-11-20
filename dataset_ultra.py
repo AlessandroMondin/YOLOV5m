@@ -2,13 +2,13 @@ import random
 import numpy as np
 import torch
 import os
+import imagesize
 import warnings
 import pandas as pd
 from PIL import Image
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 from utils.utils import resize_image
 from utils.bboxes_utils import rescale_bboxes, coco_to_yolo_tensors
-from utils.plot_utils import plot_image, cells_to_bboxes
 import config
 
 
@@ -46,9 +46,9 @@ class MS_COCO_2017(Dataset):
 
         if train:
             fname = 'images/train2017'
-            annot_file = "coco_2017_train_csv.csv"
+            annot_file = "coco_2017_coco128_csv.csv"
             # class instance because it's used in the __getitem__
-            self.annot_folder = "coco_2017_train_txt"
+            self.annot_folder = "train2017"
         else:
             fname = 'images/val2017'
             annot_file = "coco_2017_val_csv.csv"
@@ -57,7 +57,21 @@ class MS_COCO_2017(Dataset):
 
         self.fname = fname
 
-        self.annotations = pd.read_csv(os.path.join(root_directory, "annotations", annot_file), header=None).sort_values(by=[0])
+        try:
+            self.annotations = pd.read_csv(os.path.join(root_directory, "annotations", annot_file), header=None).sort_values(by=[0])
+
+        except FileNotFoundError:
+            annotations = []
+            for img_txt in os.listdir("../datasets/coco128/labels/train2017/"):
+                img = img_txt.split(".txt")[0]
+                try:
+                    w, h = imagesize.get(f"../datasets/coco128/images/train2017/{img}.jpg")
+                except FileNotFoundError:
+                    continue
+                annotations.append([str(img) + ".jpg", h, w])
+            self.annotations = pd.DataFrame(annotations)
+            self.annotations.to_csv(f"../datasets/coco128/labels/coco_2017_coco128_csv.csv")
+
         self.len_ann = len(self.annotations)
         if rect_training:
             self.annotations = self.adaptive_shape(self.annotations, bs)
@@ -68,10 +82,10 @@ class MS_COCO_2017(Dataset):
     def __getitem__(self, idx):
 
         img_name = self.annotations.iloc[idx, 0]
-        h = self.annotations.iloc[idx, 1]
-        w = self.annotations.iloc[idx, 2]
+        tg_height = self.annotations.iloc[idx, 1] if self.rect_training else 640
+        tg_width = self.annotations.iloc[idx, 2] if self.rect_training else 640
         # img_name[:-4] to remove the .jpg or .png which are coco img formats
-        label_path = os.path.join(os.path.join(config.ROOT_DIR, "annotations", self.annot_folder, img_name[:-4] + ".txt"))
+        label_path = os.path.join(self.root_directory, "labels", self.annot_folder, img_name[:-4] + ".txt")
         # to avoid an annoying "UserWarning: loadtxt: Empty input file"
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
@@ -80,12 +94,13 @@ class MS_COCO_2017(Dataset):
         img = np.array(Image.open(os.path.join(config.ROOT_DIR, self.fname, img_name)).convert("RGB"))
 
         if self.rect_training:
-            bboxes = [ann[:-1] for ann in annotations]
-            classes = [ann[-1] for ann in annotations]
+            bboxes = [ann[1:] for ann in annotations if (ann[2] > 0 and ann[3] > 0)]
+            bboxes = torch.tensor(bboxes)
+            classes = [ann[0] for ann in annotations]
             sh, sw = img.shape[0:2]
             # recasting to int just to make it work on opencv old available version on Sagemaker -.-
-            img = resize_image(img, (int(w), int(h)))
-            bboxes = rescale_bboxes(bboxes, [sw, sh], [w, h])
+            img = resize_image(img, (int(tg_width), int(tg_height)))
+            bboxes = rescale_bboxes(bboxes, [sw, sh], [tg_width, tg_height])
             bboxes = [list(bboxes[i]) + [classes[i]] for i in range(len(bboxes))]
 
         if self.transform:
@@ -95,8 +110,8 @@ class MS_COCO_2017(Dataset):
 
         if len(bboxes) > 0:
             bboxes = torch.tensor(bboxes).roll(dims=1, shifts=1)
-            yolo_xywh = coco_to_yolo_tensors(bboxes[..., 0:4], image_w=img.shape[2], image_h=img.shape[1])
-            bboxes[..., 1:] = yolo_xywh
+            #yolo_xywh = coco_to_yolo_tensors(bboxes[..., 1:5], w0=tg_width, h0=tg_height)
+            #bboxes[..., 1:] = yolo_xywh
             out_bboxes = torch.zeros((bboxes.shape[0], 6))
             out_bboxes[..., 1:] = bboxes
         else:
@@ -117,7 +132,7 @@ class MS_COCO_2017(Dataset):
 
         name = "train" if self.train else "val"
         path = os.path.join(
-            self.root_directory, "annotations",
+            self.root_directory, "labels",
             "adaptive_ann_{}_{}_bs_{}.csv".format(name, self.len_ann, int(batch_size))
         )
 

@@ -123,7 +123,7 @@ class YOLO_LOSS:
         return loss
 
     def build_targets(self, input_tensor, bboxes, pred_size):
-        check_loss = True
+        check_loss = False
         if check_loss:
             ph = pred_size[0]
             pw = pred_size[1]
@@ -285,7 +285,7 @@ class YOLO_LOSS:
 
 
 if __name__ == "__main__":
-    check_loss = True
+    check_loss = False
     batch_size = 8
     image_height = 640
     image_width = 640

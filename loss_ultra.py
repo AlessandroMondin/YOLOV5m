@@ -322,8 +322,8 @@ if __name__ == "__main__":
                     ch=(first_out * 4, first_out * 8, first_out * 16), inference=False).to(config.DEVICE)
 
     dataset = MS_COCO_2017(num_classes=nc, anchors=config.ANCHORS,
-                           root_directory=config.ROOT_DIR, transform=config.VAL_TRANSFORM,
-                           train=True, S=S, rect_training=False, default_size=640, bs=64)
+                           root_directory=config.ROOT_DIR, transform=config.ADAPTIVE_VAL_TRANSFORM,
+                           train=True, S=S, rect_training=True, default_size=640, bs=64)
 
     anchors = torch.tensor(anchors)
 
