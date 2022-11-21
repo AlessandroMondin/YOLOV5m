@@ -1,3 +1,4 @@
+import math
 import random
 import numpy as np
 import torch
@@ -7,8 +8,8 @@ import warnings
 import pandas as pd
 from PIL import Image
 from torch.utils.data import Dataset
-from utils.utils import resize_image
-from utils.bboxes_utils import rescale_bboxes, coco_to_yolo_tensors
+from utils.utils import resize_image, xywhn2xyxy, xyxy2xywhn, letterbox
+import cv2
 import config
 
 
@@ -58,8 +59,9 @@ class MS_COCO_2017(Dataset):
         self.fname = fname
 
         try:
-            self.annotations = pd.read_csv(os.path.join(root_directory, "annotations", annot_file), header=None).sort_values(by=[0])
-
+            self.annotations = pd.read_csv(os.path.join(root_directory, "labels", annot_file),
+                                           header=None, index_col=0).sort_values(by=[0])
+            self.annotations = self.annotations.head((len(self.annotations)-1))  # just removes last line
         except FileNotFoundError:
             annotations = []
             for img_txt in os.listdir("../datasets/coco128/labels/train2017/"):
@@ -96,30 +98,39 @@ class MS_COCO_2017(Dataset):
         if self.rect_training:
             bboxes = [ann[1:] for ann in annotations if (ann[2] > 0 and ann[3] > 0)]
             bboxes = torch.tensor(bboxes)
-            classes = [ann[0] for ann in annotations]
+            classes = torch.tensor([ann[0] for ann in annotations])
+            labels = torch.cat([classes.unsqueeze(1), bboxes], dim=-1)
             sh, sw = img.shape[0:2]
-            # recasting to int just to make it work on opencv old available version on Sagemaker -.-
-            img = resize_image(img, (int(tg_width), int(tg_height)))
-            bboxes = rescale_bboxes(bboxes, [sw, sh], [tg_width, tg_height])
-            bboxes = [list(bboxes[i]) + [classes[i]] for i in range(len(bboxes))]
+            img, ratio, pad = letterbox(img, (tg_height, tg_width), auto=False, scaleup=False)
+            if labels.size:  # normalized xywh to pixel xyxy format
+                labels[:, 1:] = xywhn2xyxy(labels[:, 1:], ratio[0] * sw, ratio[1] * sh, padw=pad[0], padh=pad[1])
+            nl = len(labels)
+            if nl:
+                labels[:, 1:5] = xyxy2xywhn(labels[:, 1:5], w=img.shape[1], h=img.shape[0], clip=True, eps=1E-3)
+
+            # img = resize_image(img, (int(tg_width), int(tg_height)))
+            # bboxes = rescale_bboxes(bboxes, [sw, sh], [tg_width, tg_height])
+            # bboxes = [list(bboxes[i]) + [classes[i]] for i in range(len(bboxes))]
 
         if self.transform:
             augmentations = self.transform(image=img, bboxes=bboxes if self.rect_training else annotations)
             img = augmentations["image"]
             bboxes = augmentations["bboxes"]
 
-        if len(bboxes) > 0:
-            bboxes = torch.tensor(bboxes).roll(dims=1, shifts=1)
-            #yolo_xywh = coco_to_yolo_tensors(bboxes[..., 1:5], w0=tg_width, h0=tg_height)
-            #bboxes[..., 1:] = yolo_xywh
-            out_bboxes = torch.zeros((bboxes.shape[0], 6))
-            out_bboxes[..., 1:] = bboxes
+        if len(labels) > 0:
+            # bboxes = torch.tensor(bboxes).roll(dims=1, shifts=1)
+            # yolo_xywh = coco_to_yolo_tensors(bboxes[..., 1:5], w0=tg_width, h0=tg_height)
+            # bboxes[..., 1:] = yolo_xywh
+            out_bboxes = torch.zeros((labels.shape[0], 6))
+            out_bboxes[..., 1:] = labels
         else:
             out_bboxes = torch.zeros((1, 6))
 
         out_bboxes[..., 1] -= 1
 
-        return img, out_bboxes
+        img = img.transpose((2, 0, 1))
+        img = np.ascontiguousarray(img)
+        return torch.from_numpy(img), out_bboxes
 
     # this method modifies the target width and height of
     # the images by reshaping them so that the largest size of
@@ -141,24 +152,39 @@ class MS_COCO_2017(Dataset):
             parsed_annot = pd.read_csv(path, index_col=0)
         else:
             print("...Running adaptive_shape for rectangular training on train set...")
-            annotations["w_h_ratio"] = annotations.iloc[:, 2]/annotations.iloc[:, 1]
-            annotations.sort_values(["w_h_ratio"], ascending=True, inplace=True)
+            annotations["h_w_ratio"] = annotations.iloc[:, 1]/annotations.iloc[:, 2]
+            annotations.sort_values(["h_w_ratio"], ascending=True, inplace=True)
             # IMPLEMENT POINT 2 OF WORD DOCUMENT
             for i in range(0, len(annotations), batch_size):
                 size = [annotations.iloc[i, 2], annotations.iloc[i, 1]]  # [width, height]
-                max_dim = max(size)
-                max_idx = size.index(max_dim)
-                size[~max_idx] += 32
-                sz = random.randrange(int(self.default_size * 0.7), int(self.default_size * 1.3)) // 32 * 32
-                size[~max_idx] = ((sz/size[max_idx])*(size[~max_idx]) // 32) * 32
-                size[max_idx] = sz
+
+                """r = self.default_size / max(size)
+                if r != 1:  # if sizes are not equal
+                    size = (int(size[0] * r), int(size[1] * r))"""
+
+                #  max_dim = max(size)
+                #  max_idx = size.index(max_dim)
+                #  size[~max_idx] += 32
+                #  sz = random.randrange(int(self.default_size * 0.7), int(self.default_size * 1.3)) // 32 * 32
+                #  size[~max_idx] = ((sz/size[max_idx])*(size[~max_idx]) // 32) * 32
+                #  size[max_idx] = sz
                 if i + batch_size <= len(annotations):
                     bs = batch_size
                 else:
                     bs = len(annotations) - i
                 for idx in range(bs):
-                    annotations.iloc[i + idx, 2] = size[0]
-                    annotations.iloc[i + idx, 1] = size[1]
+                    shape = [1, 1]
+                    # annotations.iloc[i + idx, 2] = size[0]
+                    # annotations.iloc[i + idx, 1] = size[1]
+                    batch_h_w = annotations.iloc[i+idx: i+bs+4 , 3].values
+                    mini, maxi = np.min(batch_h_w), np.max(batch_h_w)
+                    if maxi < 1:
+                        shape = [maxi, 1]
+                    elif mini > 1:
+                        shape = [1, 1 / mini]
+
+                    size = np.ceil(np.array(shape) * self.default_size / 32 + 0).astype(int) * 32
+
 
                 # sample annotation to avoid having pseudo-equal images in the same batch
                 annotations.iloc[i:idx, :] = annotations.iloc[i:idx, :].sample(frac=1, axis=0)
