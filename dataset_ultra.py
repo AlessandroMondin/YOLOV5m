@@ -126,7 +126,7 @@ class MS_COCO_2017(Dataset):
         else:
             out_bboxes = torch.zeros((1, 6))
 
-        out_bboxes[..., 1] -= 1
+        # out_bboxes[..., 1] -= 1
 
         img = img.transpose((2, 0, 1))
         img = np.ascontiguousarray(img)
@@ -156,7 +156,7 @@ class MS_COCO_2017(Dataset):
             annotations.sort_values(["h_w_ratio"], ascending=True, inplace=True)
             # IMPLEMENT POINT 2 OF WORD DOCUMENT
             for i in range(0, len(annotations), batch_size):
-                size = [annotations.iloc[i, 2], annotations.iloc[i, 1]]  # [width, height]
+                # size = [annotations.iloc[i, 2], annotations.iloc[i, 1]]  # [width, height]
 
                 """r = self.default_size / max(size)
                 if r != 1:  # if sizes are not equal
@@ -172,22 +172,25 @@ class MS_COCO_2017(Dataset):
                     bs = batch_size
                 else:
                     bs = len(annotations) - i
-                for idx in range(bs):
-                    shape = [1, 1]
+
+                shape = [1, 1]
                     # annotations.iloc[i + idx, 2] = size[0]
                     # annotations.iloc[i + idx, 1] = size[1]
-                    batch_h_w = annotations.iloc[i+idx: i+bs+4 , 3].values
-                    mini, maxi = np.min(batch_h_w), np.max(batch_h_w)
-                    if maxi < 1:
-                        shape = [maxi, 1]
-                    elif mini > 1:
-                        shape = [1, 1 / mini]
+                batch_h_w = annotations.iloc[i: i+bs, 3].values
+                mini, maxi = np.min(batch_h_w), np.max(batch_h_w)
+                if maxi < 1:
+                    shape = [maxi, 1]
+                elif mini > 1:
+                    shape = [1, 1 / mini]
 
-                    size = np.ceil(np.array(shape) * self.default_size / 32 + 0).astype(int) * 32
+                size = np.ceil(np.array(shape) * self.default_size / 32 + 0).astype(int) * 32
 
 
                 # sample annotation to avoid having pseudo-equal images in the same batch
-                annotations.iloc[i:idx, :] = annotations.iloc[i:idx, :].sample(frac=1, axis=0)
+                # annotations.iloc[i:idx, :] = annotations.iloc[i:idx, :].sample(frac=1, axis=0)
+
+                annotations.iloc[i:i+bs, 1:3] = size
+                continue
 
             parsed_annot = pd.DataFrame(annotations.iloc[:,:3])
             parsed_annot.to_csv(path)
