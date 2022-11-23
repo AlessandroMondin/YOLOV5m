@@ -6,7 +6,7 @@ import torch.cuda
 from albumentations.pytorch import ToTensorV2
 import cv2
 
-coco128_attempt = True
+coco128_attempt = False
 parent_dir = Path(__file__).parent.parent
 
 if "/Users/alessandro" in str(parent_dir):

@@ -322,22 +322,31 @@ if __name__ == "__main__":
                     ch=(first_out * 4, first_out * 8, first_out * 16), inference=False).to(config.DEVICE)
 
     model.load_state_dict(state_dict=torch.load("yolov5_my_arch_ultra_w.pt"), strict=True)
+    loss_fn = ComputeLoss(model, save_logs=False, filename="none")
 
+    """
     dataset = MS_COCO_2017(num_classes=nc, anchors=config.ANCHORS,
                            root_directory=config.ROOT_DIR, transform=False,
                            train=True, S=S, rect_training=True, default_size=640, bs=4)
 
-    anchors = torch.tensor(anchors)
 
-    loss_fn = ComputeLoss(model, save_logs=False, filename="none", resume="False")
 
     loader = DataLoader(dataset=dataset, batch_size=4, shuffle=False, collate_fn=dataset.collate_fn)
 
     for images, bboxes in loader:
         images = images.float() / 255
+        torch.manual_seed(0)
+        images = torch.rand((2,3,640,640))
         preds = model(images)
         loss = loss_fn(preds, bboxes, batch_idx=None, epoch=None)
-        print(loss)
+        print(loss)"""
+    torch.manual_seed(1)
+    images = torch.rand((4, 3, 640, 640))
+    img_idx = torch.arange(4).repeat(3,1).T.reshape(12,1)
+    classes = torch.arange(4).repeat(3,1).T.reshape(12,1)
+    bboxes = torch.randint(low=0, high=50, size=(12,4))/100
+    labels = torch.cat([img_idx, classes, bboxes], dim=-1)
+    print(loss_fn(model(images), labels))
 
 
 

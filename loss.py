@@ -318,9 +318,18 @@ if __name__ == "__main__":
             preds = model(images)
             start = time.time()
             loss = yolo_loss(preds, bboxes, pred_size=images.shape[2:4])
-            print(loss)
+
+            """print(loss)
             end = time.time()
-            print(end-start)
+            print(end-start)"""
+
+            torch.manual_seed(1)
+            images = torch.rand((4, 3, 640, 640))
+            #img_idx = torch.arange(4).repeat(3, 1).T.reshape(12, 1)
+            classes = torch.arange(4).repeat(3, 1).T.reshape(12, 1)
+            bboxes = torch.randint(low=0, high=50, size=(12, 4)) / 100
+            labels = torch.cat([bboxes, classes], dim=-1).tolist()
+            print(loss(model(images), labels))
 
     else:
         for images, bboxes in loader:
