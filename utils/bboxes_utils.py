@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import math
 from torchvision.ops import nms
@@ -88,13 +89,13 @@ def coco_to_yolo(bbox, image_w=640, image_h=640):
     return [((2*x1 + w)/(2*image_w)), ((2*y1 + h)/(2*image_h)), w/image_w, h/image_h]
 
 def coco_to_yolo_tensors(bbox, w0=640, h0=640):
-    x1, y1, w, h = torch.chunk(bbox, 4, dim=1)
+    x1, y1, w, h = np.split(bbox, 4, axis=1)
     #return [((x1 + w)/2)/image_w, ((y1 + h)/2)/image_h, w/image_w, h/image_h]
-    return torch.cat([((2*x1 + w)/(2*w0)), ((2*y1 + h)/(2*h0)), w/w0, h/h0], dim=1)
+    return np.concatenate([((2*x1 + w)/(2*w0)), ((2*y1 + h)/(2*h0)), w/w0, h/h0], axis=1)
 
 
 # rescales bboxes from an image_size to another image_size
-def rescale_bboxes(bboxes, starting_size, ending_size):
+"""def rescale_bboxes(bboxes, starting_size, ending_size):
     sw, sh = starting_size
     ew, eh = ending_size
     new_boxes = []
@@ -105,7 +106,20 @@ def rescale_bboxes(bboxes, starting_size, ending_size):
         h = math.floor(bbox[3] * eh/sh * 100)/100
         
         new_boxes.append([x, y, w, h])
-    return new_boxes
+    return new_boxes"""
+
+
+def rescale_bboxes(bboxes, starting_size, ending_size):
+    sw, sh = starting_size
+    ew, eh = ending_size
+    y = np.copy(bboxes)
+
+    y[:, 0:1] = np.floor(bboxes[:, 0:1] * ew / sw * 100)/100
+    y[:, 1:2] = np.floor(bboxes[:, 1:2] * eh / sh * 100)/100
+    y[:, 2:3] = np.floor(bboxes[:, 2:3] * ew / sw * 100)/100
+    y[:, 3:4] = np.floor(bboxes[:, 3:4] * eh / sh * 100)/100
+
+    return y
 
 # ALADDIN'S
 def non_max_suppression_aladdin(bboxes, iou_threshold, threshold, box_format="corners", max_detections=300):

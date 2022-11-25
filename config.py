@@ -1,6 +1,6 @@
 from pathlib import Path
 import os
-
+import numpy as np
 import albumentations as A
 import torch.cuda
 from albumentations.pytorch import ToTensorV2
@@ -9,18 +9,19 @@ import cv2
 coco128_attempt = False
 parent_dir = Path(__file__).parent.parent
 
-if "/Users/alessandro" in str(parent_dir):
+if "/Users/" in str(parent_dir):
     if coco128_attempt:
         ROOT_DIR = os.path.join(parent_dir, "datasets", "coco128")
     else:
-        ROOT_DIR = os.path.join(parent_dir, "Desktop", "ML", "DL_DATASETS", "COCO")
-else:
-    ROOT_DIR = os.path.join(parent_dir, "datasets", "coco")
+        ROOT_DIR = os.path.join(parent_dir, "datasets", "coco")
 
 FIRST_OUT = 48
 CLS_PW = 1.0
 OBJ_PW = 1.0
 
+# attempt to make albumentations deterministic
+cv2.setRNGSeed(0)
+np.random.seed(1234)
 
 LEARNING_RATE = 1e-3
 WEIGHT_DECAY = 5e-4
@@ -49,7 +50,6 @@ ANCHORS = [
 
 TRAIN_TRANSFORMS = A.Compose(
     [
-        A.Resize(width=640, height=640, interpolation=cv2.INTER_LINEAR),
         A.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.0, p=0.4),
         A.OneOf(
             [
@@ -73,47 +73,8 @@ TRAIN_TRANSFORMS = A.Compose(
         A.Posterize(p=0.1),
         A.ToGray(p=0.1),
         A.ChannelShuffle(p=0.05),
-        A.Normalize(mean=[0, 0, 0], std=[1, 1, 1], max_pixel_value=255,),
-        ToTensorV2(),
     ],
-    bbox_params=A.BboxParams(format="coco" if not coco128_attempt else "yolo", min_visibility=0.4, label_fields=[],),
-)
-
-
-VAL_TRANSFORM = A.Compose(
-    [
-        A.LongestMaxSize(max_size=IMAGE_SIZE),
-        A.PadIfNeeded(
-            min_height=IMAGE_SIZE, min_width=IMAGE_SIZE, border_mode=cv2.BORDER_CONSTANT
-        ),
-        A.Normalize(mean=[0, 0, 0], std=[1, 1, 1], max_pixel_value=255,),
-        ToTensorV2(),
-    ],
-    bbox_params=A.BboxParams(format="coco" if not coco128_attempt else "yolo", min_visibility=0.4, label_fields=[]),
-)
-
-TEST_TRANSFORM = A.Compose(
-    [
-        A.LongestMaxSize(max_size=IMAGE_SIZE),
-        A.PadIfNeeded(
-            min_height=IMAGE_SIZE, min_width=IMAGE_SIZE, border_mode=cv2.BORDER_CONSTANT
-        ),
-        A.Normalize(mean=[0, 0, 0], std=[1, 1, 1], max_pixel_value=255,),
-        ToTensorV2(),
-    ],
-)
-
-
-ADAPTIVE_TRAIN_TRANSFORM = A.Compose(
-    # removing the A.Resize from the augmentations
-    TRAIN_TRANSFORMS[2:],
-    bbox_params=A.BboxParams(format="coco" if not coco128_attempt else "yolo", min_visibility=0.4, label_fields=[])
-)
-
-ADAPTIVE_VAL_TRANSFORM = A.Compose(
-    # removing the A.Resize from the augmentations
-    VAL_TRANSFORM[2:],
-    bbox_params=A.BboxParams(format="coco" if not coco128_attempt else "yolo", min_visibility=0.4, label_fields=[])
+    bbox_params=A.BboxParams("yolo", min_visibility=0.4, label_fields=[],),
 )
 
 COCO_LABELS = [
