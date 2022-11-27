@@ -1,6 +1,7 @@
 import math
 import random
 
+from matplotlib.patches import Rectangle
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -10,7 +11,7 @@ import warnings
 import pandas as pd
 from PIL import Image
 from torch.utils.data import Dataset
-from utils.utils import resize_image, xyxy2xywhn
+from utils.utils import resize_image, xywhn2xyxy
 from utils.bboxes_utils import rescale_bboxes, coco_to_yolo_tensors
 import config
 
@@ -124,17 +125,38 @@ class MS_COCO_2017(Dataset):
                 img = augmentations["image"]
                 # loss fx requires bboxes to be (class_idx,x,y,w,h)
                 labels = np.array(augmentations["bboxes"])
+                if len(labels):
+                    labels = np.roll(labels, axis=1, shift=1)
 
         if len(labels) > 0:
-            labels = np.roll(labels, axis=1, shift=1)
             labels = torch.from_numpy(labels)
             out_bboxes = torch.zeros((labels.shape[0], 6))
             out_bboxes[..., 1:] = labels
         else:
             out_bboxes = torch.zeros((1, 6))
 
+
+
+        """plot_labes = xywhn2xyxy(out_bboxes[:, 2:], w=img.shape[1], h=img.shape[0])
+        fig, ax = plt.subplots(1)
+        ax.imshow(img)
+        for box in plot_labes:
+            rect = Rectangle(
+                (box[0], box[1]),
+                box[2] - box[0],
+                box[3] - box[1],
+                linewidth=2,
+                edgecolor="green",
+                facecolor="none"
+            )
+            # Add the patch to the Axes
+            ax.add_patch(rect)
+
+        plt.show()"""
+
         img = img.transpose((2, 0, 1))
         img = np.ascontiguousarray(img)
+
         return torch.from_numpy(img), out_bboxes
 
     # this method modifies the target width and height of
@@ -153,7 +175,7 @@ class MS_COCO_2017(Dataset):
         )
 
         if os.path.isfile(path):
-            print("==> Loading cached annotations for rectangular training on val set")
+            print(f"==> Loading cached annotations for rectangular training on {self.annot_folder}")
             parsed_annot = pd.read_csv(path, index_col=0)
         else:
             print("...Running adaptive_shape for 'rectangular training' on training set...")

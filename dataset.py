@@ -3,13 +3,17 @@ import numpy as np
 import torch
 import os
 import warnings
+import imagesize
 import pandas as pd
 from PIL import Image
 from torch.utils.data import Dataset, DataLoader
-from utils.utils import resize_image
-from utils.bboxes_utils import rescale_bboxes, iou_width_height, coco_to_yolo, non_max_suppression
+from utils.utils import resize_image, xywhn2xyxy
+from utils.bboxes_utils import rescale_bboxes, iou_width_height, coco_to_yolo_tensors, non_max_suppression
 from utils.plot_utils import plot_image, cells_to_bboxes
 import config
+
+import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
 
 
 class MS_COCO_2017(Dataset):
@@ -25,6 +29,8 @@ class MS_COCO_2017(Dataset):
                  rect_training=False,
                  default_size=640,
                  bs=64,
+                 bboxes_format="coco",
+                 ultralytics_loss=False
                  ):
         """
         Parameters:
@@ -32,6 +38,12 @@ class MS_COCO_2017(Dataset):
             root_directory (path): path to the COCO2017 dataset
             transform: set of Albumentations transformations to be performed with A.Compose
         """
+        assert bboxes_format in ["coco", "yolo"], 'bboxes_format must be either "coco" or "yolo"'
+
+        self.batch_range = 64 if bs < 64 else 128
+
+        self.bboxes_format = bboxes_format
+        self.ultralytics_loss = ultralytics_loss
         self.nc = num_classes
         self.transform = transform
         self.anchors = torch.tensor(anchors[0] + anchors[1] + anchors[2])
@@ -43,24 +55,38 @@ class MS_COCO_2017(Dataset):
         self.default_size = default_size
         self.root_directory = root_directory
         self.train = train
-
         if train:
             fname = 'images/train2017'
-            annot_file = "coco_2017_train_csv.csv"
+            annot_file = "annot_train.csv"
             # class instance because it's used in the __getitem__
-            self.annot_folder = "coco_2017_train_txt"
+            self.annot_folder = "train2017"
         else:
             fname = 'images/val2017'
-            annot_file = "coco_2017_val_csv.csv"
+            annot_file = "annot_val.csv"
             # class instance because it's used in the __getitem__
-            self.annot_folder = "coco_2017_val_txt"
+            self.annot_folder = "val2017"
 
         self.fname = fname
 
-        self.annotations = pd.read_csv(os.path.join(root_directory, "annotations", annot_file), header=None)
+        try:
+            self.annotations = pd.read_csv(os.path.join(root_directory, "labels", annot_file),
+                                           header=None, index_col=0).sort_values(by=[0])
+            self.annotations = self.annotations.head((len(self.annotations)-1))  # just removes last line
+        except FileNotFoundError:
+            annotations = []
+            for img_txt in os.listdir(os.path.join(self.root_directory, "labels", self.annot_folder)):
+                img = img_txt.split(".txt")[0]
+                try:
+                    w, h = imagesize.get(os.path.join(self.root_directory, "images", self.annot_folder, f"{img}.jpg"))
+                except FileNotFoundError:
+                    continue
+                annotations.append([str(img) + ".jpg", h, w])
+            self.annotations = pd.DataFrame(annotations)
+            self.annotations.to_csv(os.path.join(self.root_directory, "labels", annot_file))
+
         self.len_ann = len(self.annotations)
         if rect_training:
-            self.annotations = self.adaptive_shape(self.annotations, bs)
+            self.annotations = self.adaptive_shape(self.annotations)
 
     def __len__(self):
         return len(self.annotations)
@@ -68,32 +94,66 @@ class MS_COCO_2017(Dataset):
     def __getitem__(self, idx):
 
         img_name = self.annotations.iloc[idx, 0]
-        h = self.annotations.iloc[idx, 1]
-        w = self.annotations.iloc[idx, 2]
+        tg_height = self.annotations.iloc[idx, 1] if self.rect_training else 640
+        tg_width = self.annotations.iloc[idx, 2] if self.rect_training else 640
         # img_name[:-4] to remove the .jpg or .png which are coco img formats
-        label_path = os.path.join(os.path.join(config.ROOT_DIR, "annotations", self.annot_folder, img_name[:-4] + ".txt"))
+        label_path = os.path.join(self.root_directory, "labels", self.annot_folder, img_name[:-4] + ".txt")
         # to avoid an annoying "UserWarning: loadtxt: Empty input file"
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            annotations = np.loadtxt(fname=label_path, delimiter=" ", ndmin=2).tolist()
+            labels = np.loadtxt(fname=label_path, delimiter=" ", ndmin=2)
+            # removing annotations with negative values
+            labels = labels[np.all(labels >= 0, axis=1), :]
+            # to avoid negative values
+            labels[:, 3:5] = np.floor(labels[:, 3:5] * 1000) / 1000
 
         img = np.array(Image.open(os.path.join(config.ROOT_DIR, self.fname, img_name)).convert("RGB"))
 
-        if self.rect_training:
-            bboxes = [ann[:-1] for ann in annotations]
-            classes = [ann[-1] for ann in annotations]
-            sh, sw = img.shape[0:2]
-            # recasting to int just to make it work on opencv old available version on Sagemaker -.-
-            img = resize_image(img, (int(w), int(h)))
-            bboxes = rescale_bboxes(bboxes, [sw, sh], [w, h])
-            bboxes = [list(bboxes[i]) + [classes[i]] for i in range(len(bboxes))]
+        if self.bboxes_format == "coco":
+            labels[:, -1] -= 1  # 0-indexing the classes of coco labels (1-80 --> 0-79)
+            labels = np.roll(labels, axis=1, shift=1)
+            # normalized coordinates are scale invariant, hence after resizing the img we don't resize labels
+            labels[:, 1:] = coco_to_yolo_tensors(labels[:, 1:], w0=img.shape[1], h0=img.shape[0])
+
+        img = resize_image(img, (int(tg_width), int(tg_height)))
 
         if self.transform:
-            augmentations = self.transform(image=img, bboxes=bboxes if self.rect_training else annotations)
-            img = augmentations["image"]
-            bboxes = augmentations["bboxes"]
+            if len(labels) > 0:
+                # albumentations requires bboxes to be (x,y,w,h,class_idx)
+                augmentations = self.transform(image=img,
+                                               bboxes=np.roll(labels, axis=1, shift=4)
+                                               )
+                img = augmentations["image"]
+                # loss fx requires bboxes to be (class_idx,x,y,w,h)
+                labels = np.array(augmentations["bboxes"])
+                if len(labels):
+                    labels = np.roll(labels, axis=1, shift=1)
 
-        return img, bboxes
+        """plot_labes = xywhn2xyxy(labels[:, 1:], w=img.shape[1], h=img.shape[0])
+        fig, ax = plt.subplots(1)
+        ax.imshow(img)
+        for box in plot_labes:
+            rect = Rectangle(
+                (box[0], box[1]),
+                box[2] - box[0],
+                box[3] - box[1],
+                linewidth=2,
+                edgecolor="green",
+                facecolor="none"
+            )
+            # Add the patch to the Axes
+            ax.add_patch(rect)
+
+        plt.show()"""
+        if self.ultralytics_loss:
+            labels = torch.from_numpy(labels)
+            out_bboxes = torch.zeros((labels.shape[0], 6))
+            out_bboxes[..., 1:] = labels
+
+        img = img.transpose((2, 0, 1))
+        img = np.ascontiguousarray(img)
+
+        return torch.from_numpy(img), out_bboxes if self.ultralytics_loss else labels
 
     # this method modifies the target width and height of
     # the images by reshaping them so that the largest size of
@@ -102,32 +162,32 @@ class MS_COCO_2017(Dataset):
     # the purpose is multi_scale training by somehow preserving the
     # original ratio of images
 
-    def adaptive_shape(self, annotations, batch_size):
+    def adaptive_shape(self, annotations):
 
         name = "train" if self.train else "val"
         path = os.path.join(
-            self.root_directory, "annotations",
-            "adaptive_ann_{}_{}_bs_{}.csv".format(name, self.len_ann, int(batch_size))
+            self.root_directory, "labels",
+            "adaptive_ann_{}_{}_br_{}.csv".format(name, self.len_ann, int(self.batch_range))
         )
 
         if os.path.isfile(path):
-            print("==> Loading cached annotations for rectangular training on train set")
+            print(f"==> Loading cached annotations for rectangular training on {self.annot_folder}")
             parsed_annot = pd.read_csv(path, index_col=0)
         else:
-            print("...Running adaptive_shape for rectangular training on train set...")
-            annotations["w_h_ratio"] = annotations.iloc[:, 2]/annotations.iloc[:, 1]
+            print("...Running adaptive_shape for 'rectangular training' on training set...")
+            annotations["w_h_ratio"] = annotations.iloc[:, 2] / annotations.iloc[:, 1]
             annotations.sort_values(["w_h_ratio"], ascending=True, inplace=True)
-            # IMPLEMENT POINT 2 OF WORD DOCUMENT
-            for i in range(0, len(annotations), batch_size):
+
+            for i in range(0, len(annotations), self.batch_range):
                 size = [annotations.iloc[i, 2], annotations.iloc[i, 1]]  # [width, height]
                 max_dim = max(size)
                 max_idx = size.index(max_dim)
                 size[~max_idx] += 32
-                sz = random.randrange(int(self.default_size * 0.7), int(self.default_size * 1.3)) // 32 * 32
+                sz = random.randrange(int(self.default_size * 0.9), int(self.default_size * 1.1)) // 32 * 32
                 size[~max_idx] = ((sz/size[max_idx])*(size[~max_idx]) // 32) * 32
                 size[max_idx] = sz
-                if i + batch_size <= len(annotations):
-                    bs = batch_size
+                if i + self.batch_range <= len(annotations):
+                    bs = self.batch_range
                 else:
                     bs = len(annotations) - i
                 for idx in range(bs):
@@ -144,7 +204,15 @@ class MS_COCO_2017(Dataset):
 
     @staticmethod
     def collate_fn(batch):
-        return tuple(zip(*batch))
+        im, label = zip(*batch)
+        return torch.stack(im, 0), label
+
+    @staticmethod
+    def collate_fn_ultra(batch):
+        im, label = zip(*batch)  # transposed
+        for i, lb in enumerate(label):
+            lb[:, 0] = i  # add target image index for build_targets()
+        return torch.stack(im, 0), torch.cat(label, 0)
 
 
 class MS_COCO_2017_VALIDATION(Dataset):
@@ -160,14 +228,19 @@ class MS_COCO_2017_VALIDATION(Dataset):
                  rect_training=False,
                  default_size=640,
                  bs=64,
-                 coco_128=False
+                 bboxes_format="coco",
                  ):
         """
         Parameters:
             train (bool): if true the os.path.join will lead to the train set, otherwise to the val set
             root_directory (path): path to the COCO2017 dataset
-            transform: set of Albumentation transformations to be performed with A.Compose
+            transform: set of Albumentations transformations to be performed with A.Compose
         """
+        assert bboxes_format in ["coco", "yolo"], 'bboxes_format must be either "coco" or "yolo"'
+
+        self.batch_range = 64 if bs < 64 else 128
+
+        self.bboxes_format = bboxes_format
         self.nc = num_classes
         self.transform = transform
         self.anchors = torch.tensor(anchors[0] + anchors[1] + anchors[2])
@@ -179,30 +252,38 @@ class MS_COCO_2017_VALIDATION(Dataset):
         self.default_size = default_size
         self.root_directory = root_directory
         self.train = train
-
         if train:
             fname = 'images/train2017'
-            annot_file = "coco_2017_train_csv.csv"
+            annot_file = "annot_train.csv"
             # class instance because it's used in the __getitem__
-            self.annot_folder = "coco_2017_train_txt"
+            self.annot_folder = "train2017"
         else:
-            if coco_128:
-                fname = 'images/train2017'
-                annot_file = "coco_16.csv"
-                self.annot_folder = "coco_16_txt"
-            else:
-                fname = 'images/val2017'
-                annot_file = "coco_2017_val_csv.csv"
+            fname = 'images/val2017'
+            annot_file = "annot_val.csv"
             # class instance because it's used in the __getitem__
-                self.annot_folder = "coco_2017_val_txt"
+            self.annot_folder = "val2017"
 
         self.fname = fname
 
-        self.annotations = pd.read_csv(os.path.join(root_directory, "annotations", annot_file), header=None)
-        self.len_ann = len(self.annotations)
+        try:
+            self.annotations = pd.read_csv(os.path.join(root_directory, "labels", annot_file),
+                                           header=None, index_col=0).sort_values(by=[0])
+            self.annotations = self.annotations.head((len(self.annotations)-1))  # just removes last line
+        except FileNotFoundError:
+            annotations = []
+            for img_txt in os.listdir(os.path.join(self.root_directory, "labels", self.annot_folder)):
+                img = img_txt.split(".txt")[0]
+                try:
+                    w, h = imagesize.get(os.path.join(self.root_directory, "images", self.annot_folder, f"{img}.jpg"))
+                except FileNotFoundError:
+                    continue
+                annotations.append([str(img) + ".jpg", h, w])
+            self.annotations = pd.DataFrame(annotations)
+            self.annotations.to_csv(os.path.join(self.root_directory, "labels", annot_file))
 
+        self.len_ann = len(self.annotations)
         if rect_training:
-            self.annotations = self.adaptive_shape(self.annotations, bs)
+            self.annotations = self.adaptive_shape(self.annotations)
 
     def __len__(self):
         return len(self.annotations)
@@ -215,43 +296,52 @@ class MS_COCO_2017_VALIDATION(Dataset):
         tg_width = self.annotations.iloc[idx, 2] if self.rect_training else 640
         # print(f'image_name: {img_name}, idx: {idx}, tg_height: {tg_height}, tg_width: {tg_width}')
         # img_name[:-4] to remove the .jpg or .png which are coco img formats
-        label_path = os.path.join(os.path.join(config.ROOT_DIR, "annotations", self.annot_folder, img_name[:-4] + ".txt"))
+        label_path = os.path.join(os.path.join(config.ROOT_DIR, "labels", self.annot_folder, img_name[:-4] + ".txt"))
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            annotations = np.loadtxt(fname=label_path, delimiter=" ", ndmin=2).tolist()
-
-        bboxes = [ann[:-1] for ann in annotations]
-        classes = [ann[-1] for ann in annotations]
+            labels = np.loadtxt(fname=label_path, delimiter=" ", ndmin=2)
+            # removing annotations with negative values
+            labels = labels[np.all(labels >= 0, axis=1), :]
+            # to avoid negative values
+            labels[:, 3:5] = np.floor(labels[:, 3:5] * 1000) / 1000
 
         img = np.array(Image.open(os.path.join(config.ROOT_DIR, self.fname, img_name)).convert("RGB"))
 
-        if self.rect_training:
-            sh, sw = img.shape[0:2]
-            # print(f'starting_height: {sh}, starting_width: {sw}')
-            bboxes = rescale_bboxes(bboxes, [sw, sh], [tg_width, tg_height])
-            # recasting to int just to make it work on opencv old available version on Sagemaker -.-
-            img = resize_image(img, (int(tg_width), int(tg_height)))
+        if self.bboxes_format == "coco":
+            labels[:, -1] -= 1  # 0-indexing the classes of coco labels (1-80 --> 0-79)
+            labels = np.roll(labels, axis=1, shift=1)
+            # normalized coordinates are scale invariant, hence after resizing the img we don't resize labels
+            labels[:, 1:] = coco_to_yolo_tensors(labels[:, 1:], w0=img.shape[1], h0=img.shape[0])
 
-        # annot_bboxes = [[classes[i]-1]+[1]+list(bboxes[i]) for i in range(len(bboxes))]
-        # plot_coco(img, annot_bboxes)
+        img = resize_image(img, (int(tg_width), int(tg_height)))
 
         if self.transform:
-            augmentations = self.transform(image=img, bboxes=bboxes)
-            img = augmentations["image"]
-            bboxes = augmentations["bboxes"]
+            if len(labels) > 0:
+                # albumentations requires bboxes to be (x,y,w,h,class_idx)
+                augmentations = self.transform(image=img,
+                                               bboxes=np.roll(labels, axis=1, shift=4)
+                                               )
+                img = augmentations["image"]
+                # loss fx requires bboxes to be (class_idx,x,y,w,h)
+                labels = np.array(augmentations["bboxes"])
+                if len(labels):
+                    labels = np.roll(labels, axis=1, shift=1)
 
+
+        classes = labels[:, 0].tolist() if len(labels) else []
+        bboxes = labels[:, 1:] if len(labels) else []
 
         # Below assumes 3 scale predictions (as paper) and same num of anchors per scale
         # 6 because (p_o, x, y, w, h, class)
         # targets is a list of len 3 and targets[0] has shape (3, 13, 13 ,6)
         # ?where is batch_size?
-        targets = [torch.zeros((self.num_anchors // 3, int(img.shape[1]/S),
-                                int(img.shape[2]/S), 6))
+        targets = [torch.zeros((self.num_anchors // 3, int(img.shape[0]/S),
+                                int(img.shape[1]/S), 6))
                    for S in self.S]
 
         for idx, box in enumerate(bboxes):
             class_label = classes[idx] - 1  # classes in coco start from 1
-            box = coco_to_yolo(box, image_w=tg_width, image_h=tg_height)
+            #box = coco_to_yolo(box, image_w=tg_width, image_h=tg_height)
             # this iou() computer iou just by comparing widths and heights
             # torch.tensor(box[2:4] -> shape (2,) - self.anchors shape -> (9,2)
             # iou_anchors --> tensor of shape (9,)
@@ -325,7 +415,10 @@ class MS_COCO_2017_VALIDATION(Dataset):
                 elif not anchor_taken and iou_anchors[anchor_idx] > self.ignore_iou_thresh:
                     targets[scale_idx][anchor_on_scale, i, j, 4] = -1  # ignore prediction
 
-        return img, tuple(targets)
+        img = img.transpose((2, 0, 1))
+        img = np.ascontiguousarray(img)
+
+        return torch.from_numpy(img), tuple(targets)
 
     # this method modifies the target width and height of
     # the images by reshaping them so that the largest size of
@@ -334,32 +427,27 @@ class MS_COCO_2017_VALIDATION(Dataset):
     # the purpose is multi_scale training by somehow preserving the
     # original ratio of images
 
-    def adaptive_shape(self, annotations, batch_size):
+    def adaptive_shape(self, annotations):
 
         name = "train" if self.train else "val"
         path = os.path.join(
-            self.root_directory, "annotations",
-            "adaptive_ann_{}_{}_bs_{}.csv".format(name, self.len_ann, int(batch_size))
+            self.root_directory, "labels",
+            "adaptive_ann_{}_{}_br_{}.csv".format(name, self.len_ann, int(self.batch_range))
         )
 
         if os.path.isfile(path):
-            print("==> Loading cached annotations for rectangular training on val set")
+            print(f"==> Loading cached annotations for rectangular training on {self.annot_folder}")
             parsed_annot = pd.read_csv(path, index_col=0)
         else:
-            print("...Running adaptive_shape for rectangular training on val set...")
+            print("...Running adaptive_shape for 'rectangular training' on training set...")
             annotations["w_h_ratio"] = annotations.iloc[:, 2] / annotations.iloc[:, 1]
             annotations.sort_values(["w_h_ratio"], ascending=True, inplace=True)
-            # IMPLEMENT POINT 2 OF WORD DOCUMENT
-            for i in range(0, len(annotations), batch_size):
+
+            for i in range(0, len(annotations), self.batch_range):
                 size = [annotations.iloc[i, 2], annotations.iloc[i, 1]]  # [width, height]
-                max_dim = max(size)
-                max_idx = size.index(max_dim)
-                size[~max_idx] += 32
-                sz = random.randrange(int(self.default_size * 0.7), int(self.default_size * 1.3)) // 32 * 32
-                size[~max_idx] = ((sz/size[max_idx])*(size[~max_idx]) // 32) * 32
-                size[max_idx] = sz
-                if i + batch_size <= len(annotations):
-                    bs = batch_size
+
+                if i + self.batch_range <= len(annotations):
+                    bs = self.batch_range
                 else:
                     bs = len(annotations) - i
                 for idx in range(bs):
@@ -385,11 +473,10 @@ if __name__ == "__main__":
 
     anchors = config.ANCHORS
 
-    transform = config.VAL_TRANSFORM
-
     dataset = MS_COCO_2017_VALIDATION(num_classes=len(config.COCO80), anchors=config.ANCHORS,
-                                      root_directory=config.ROOT_DIR, transform=config.ADAPTIVE_VAL_TRANSFORM,
-                                      train=True, S=S, rect_training=True, default_size=640, bs=64, coco_128=False)
+                                      root_directory=config.ROOT_DIR, transform=None,
+                                      train=False, S=S, rect_training=True, default_size=640, bs=4,
+                                      bboxes_format="coco")
 
     # anchors = torch.tensor(anchors)
     loader = DataLoader(dataset=dataset, batch_size=8, shuffle=False)

@@ -142,20 +142,19 @@ class YOLO_LOSS:
             targets = [torch.zeros((self.num_anchors_per_scale, int(input_tensor.shape[2]/S),
                                     int(input_tensor.shape[3]/S), 6)) for S in self.S]
 
-        classes = [box[-1] for box in bboxes]
-        bboxes = [box[:-1] for box in bboxes]
+        classes = bboxes[:, 0].tolist() if len(bboxes) else []
+        bboxes = bboxes[:, 1:] if len(bboxes) else []
 
-        if not self.rect_training:
+        """if not self.rect_training:
             if check_loss:
                 bboxes = rescale_bboxes(bboxes, starting_size=(640, 640), ending_size=(pw, ph))
             else:
-                bboxes = rescale_bboxes(bboxes, starting_size=(640, 640), ending_size=(pw, ph))
+                bboxes = rescale_bboxes(bboxes, starting_size=(640, 640), ending_size=(pw, ph))"""
 
         for idx, box in enumerate(bboxes):
-            class_label = classes[idx] - 1  # classes in coco start from 1
-            box = coco_to_yolo(box, pw, ph)
+            # box = coco_to_yolo(box, pw, ph)
 
-            iou_anchors = iou_width_height(torch.tensor(box[2:4]), self.anchors/torch.tensor([640, 640], device=config.DEVICE))
+            iou_anchors = iou_width_height(torch.from_numpy(box[2:4]), self.anchors)
 
             anchor_indices = iou_anchors.argsort(descending=True, dim=0)
 
@@ -220,7 +219,7 @@ class YOLO_LOSS:
                         [x_cell, y_cell, width_cell, height_cell]
                     )
                     targets[scale_idx][anchor_on_scale, i, j, 0:4] = box_coordinates
-                    targets[scale_idx][anchor_on_scale, i, j, 5] = int(class_label)
+                    targets[scale_idx][anchor_on_scale, i, j, 5] = int(classes[idx])
                     has_anchor[scale_idx] = True
                 # not understood
 
@@ -300,18 +299,20 @@ if __name__ == "__main__":
     model.load_state_dict(state_dict=torch.load("yolov5_my_arch_ultra_w.pt"), strict=True)
 
     dataset = MS_COCO_2017(num_classes=len(config.COCO80), anchors=config.ANCHORS,
-                           root_directory=config.ROOT_DIR, transform=config.ADAPTIVE_VAL_TRANSFORM,
+                           root_directory=config.ROOT_DIR, transform=config.TRAIN_TRANSFORMS,
                            train=True, S=S, rect_training=True, default_size=640, bs=4)
 
     anchors = torch.tensor(anchors)
 
     yolo_loss = YOLO_LOSS(model, rect_training=dataset.rect_training)
 
-    loader = DataLoader(dataset=dataset, batch_size=4, shuffle=False, collate_fn=dataset.collate_fn)
+    loader = DataLoader(dataset=dataset, batch_size=4, shuffle=False if dataset.rect_training else True,
+                        collate_fn=dataset.collate_fn)
 
     if check_loss:
         for images, bboxes in loader:
             images = torch.stack(images, dim=0).to(config.DEVICE)
+            images = images/255
             if not dataset.rect_training:
                 images = multi_scale(images, target_shape=640, max_stride=32)
 
@@ -319,21 +320,20 @@ if __name__ == "__main__":
             start = time.time()
             loss = yolo_loss(preds, bboxes, pred_size=images.shape[2:4])
 
-            """print(loss)
-            end = time.time()
-            print(end-start)"""
+            print(loss)
 
-            torch.manual_seed(1)
+            """torch.manual_seed(1)
             images = torch.rand((4, 3, 640, 640))
             #img_idx = torch.arange(4).repeat(3, 1).T.reshape(12, 1)
             classes = torch.arange(4).repeat(3, 1).T.reshape(12, 1)
             bboxes = torch.randint(low=0, high=50, size=(12, 4)) / 100
             labels = torch.cat([bboxes, classes], dim=-1).tolist()
-            print(loss(model(images), labels))
+            print(loss(model(images), labels))"""
 
     else:
         for images, bboxes in loader:
             images = torch.stack(images, dim=0).to(config.DEVICE)
+            images = images / 255
             if not dataset.rect_training:
                 images = multi_scale(images, target_shape=640, max_stride=32)
 

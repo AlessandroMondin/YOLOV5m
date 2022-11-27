@@ -4,17 +4,22 @@ import math
 from torchvision.ops import nms
 
 # ALADDIN'S
-def iou_width_height(gt_box, anchors):
+def iou_width_height(gt_box, anchors, strided_anchors=True, stride=[8, 16, 32]):
     """
     Parameters:
         gt_box (tensor): width and height of the ground truth box
         anchors (tensor): lists of anchors containing width and height
+        strided_anchors (bool): if the anchors are divided by the stride or not
     Returns:
         tensor: Intersection over union between the gt_box and each of the n-anchors
     """
     # boxes 1 (gt_box): shape (2,)
     # boxes 2 (anchors): shape (9,2)
     # intersection shape: (9,)
+    anchors /= 640
+    if strided_anchors:
+        anchors = anchors * torch.tensor(stride).repeat(6, 1).T.reshape(9, 2)
+
     intersection = torch.min(gt_box[..., 0], anchors[..., 0]) * torch.min(
         gt_box[..., 1], anchors[..., 1]
     )
