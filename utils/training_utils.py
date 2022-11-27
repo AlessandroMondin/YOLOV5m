@@ -37,7 +37,7 @@ def get_loaders(
         num_workers=4,
         pin_memory=torch.cuda.is_available(),
         rect_training=False,
-        bboxes_format="yolo",
+        box_format="coco",
         ultralytics_loss=False
 ):
 
@@ -47,15 +47,14 @@ def get_loaders(
     val_augmentation = None
 
     # bs here is not batch_size, check class method "adaptive_shape" to check behavior
-    train_ds = MS_COCO_2017(num_classes=len(config.COCO80), anchors=config.ANCHORS,
-                            root_directory=db_root_dir, transform=train_augmentation,
-                            train=True, S=S, rect_training=rect_training, bs=batch_size,
-                            bboxes_format=bboxes_format, ultralytics_loss=ultralytics_loss)
+    train_ds = MS_COCO_2017(num_classes=len(config.COCO80), root_directory=db_root_dir,
+                            transform=train_augmentation, train=True, rect_training=rect_training,
+                            bs=batch_size, bboxes_format=box_format, ultralytics_loss=ultralytics_loss)
 
     val_ds = MS_COCO_2017_VALIDATION(num_classes=len(config.COCO80), anchors=config.ANCHORS,
                                      root_directory=db_root_dir, transform=val_augmentation,
                                      train=False, S=S, rect_training=rect_training, bs=batch_size,
-                                     default_size=640, bboxes_format=bboxes_format)
+                                     bboxes_format=box_format)
 
     shuffle = False if rect_training else True
 
@@ -109,7 +108,6 @@ def train_loop(model, loader, optim, loss_fn, scaler, epoch, num_epochs, multi_s
         with torch.cuda.amp.autocast():
             out = model(images)
             loss = loss_fn(out, bboxes, pred_size=images.shape[2:4], batch_idx=idx, epoch=epoch)
-            #print(loss)
             avg_batches_loss += loss
 
         # backpropagation

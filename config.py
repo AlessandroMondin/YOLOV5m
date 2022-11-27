@@ -19,16 +19,11 @@ FIRST_OUT = 48
 CLS_PW = 1.0
 OBJ_PW = 1.0
 
-# attempt to make albumentations deterministic
-cv2.setRNGSeed(0)
-np.random.seed(1234)
 
 LEARNING_RATE = 1e-3
 WEIGHT_DECAY = 5e-4
 
-
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-
 IMAGE_SIZE = 640
 
 
@@ -36,7 +31,6 @@ CONF_THRESHOLD = 0.001  # to get all possible bboxes, trade-off metrics/speed --
 NMS_IOU_THRESH = 0.6
 # for map 50
 MAP_IOU_THRESH = 0.5
-
 
 RECT_TRAINING = True
 

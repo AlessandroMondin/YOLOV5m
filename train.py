@@ -72,7 +72,7 @@ def main(opt):
     # check get_loaders to see how augmentation is set
     train_loader, val_loader = get_loaders(db_root_dir=config.ROOT_DIR, batch_size=opt.bs,
                                            num_workers=opt.nw, rect_training=rect_training,
-                                           bboxes_format=opt.box_format, ultralytics_loss=opt.ultralytics_loss)
+                                           box_format=opt.box_format, ultralytics_loss=opt.ultralytics_loss)
 
     if opt.ultralytics_loss:
         loss_fn = ComputeLoss(model, save_logs=save_logs, filename=filename, resume=opt.resume)
@@ -83,6 +83,7 @@ def main(opt):
     evaluate = YOLO_EVAL(save_logs=save_logs, conf_threshold=config.CONF_THRESHOLD,
                          nms_iou_thresh=config.NMS_IOU_THRESH,  map_iou_thresh=config.MAP_IOU_THRESH,
                          device=config.DEVICE, filename=filename, resume=opt.resume)
+
 
     # starting epoch is used only when training is resumed by loading weights
     for epoch in range(0 + starting_epoch, opt.epochs + starting_epoch):
@@ -98,7 +99,7 @@ def main(opt):
 
         #evaluate.check_class_accuracy(model, val_loader)
 
-        evaluate.map_pr_rec(model, val_loader, anchors=model.head.anchors, epoch=epoch+1)
+        #evaluate.map_pr_rec(model, val_loader, anchors=model.head.anchors, epoch=epoch+1)
 
         # NMS WRONGLY MODIFIED TO TEST THIS FEATURE!!
         if not opt.nosaveimgs:

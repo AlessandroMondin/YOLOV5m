@@ -330,19 +330,18 @@ if __name__ == "__main__":
                                   train=True, S=S, rect_training=True, default_size=640, bs=4,
                                   bboxes_format="coco")"""
 
-    dataset = MS_COCO_2017(num_classes=nc, anchors=config.ANCHORS,
-                           root_directory=config.ROOT_DIR, transform=None,
-                           train=True, S=S, rect_training=True, default_size=640, bs=4,
-                           bboxes_format="yolo", ultralytics_loss=True)
+    dataset = MS_COCO_2017(num_classes=nc, root_directory=config.ROOT_DIR, transform=None,
+                           train=True, rect_training=True, default_size=640, bs=8,
+                           bboxes_format="coco", ultralytics_loss=True)
 
     collate_fn = dataset.collate_fn_ultra if dataset.ultralytics_loss else dataset.collate_fn
 
-    loader = DataLoader(dataset=dataset, batch_size=4, shuffle=False if dataset.rect_training else True, collate_fn=collate_fn)
+    loader = DataLoader(dataset=dataset, batch_size=8, shuffle=False if dataset.rect_training else True, collate_fn=collate_fn)
 
     for images, bboxes in loader:
-        images = images / 255
+        images = images.float() / 255
         preds = model(images)
-        loss = loss_fn(preds, bboxes, batch_idx=None, epoch=None)
+        loss = loss_fn(preds, bboxes, pred_size=images.shape[2:4], batch_idx=None, epoch=None)
         print(loss)
 
 

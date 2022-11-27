@@ -52,6 +52,7 @@ class YOLO_EVAL:
         for idx, (images, y) in enumerate(tqdm(loader)):
 
             images = images.to(self.device)
+            images = images.float() / 255
             with torch.no_grad():
                 out = model(images)
 
@@ -93,10 +94,10 @@ class YOLO_EVAL:
         # 1) GET EVALUATION BBOXES
         all_predictions = []
         all_ground_truths = []
-        for batch_idx, (x, labels) in enumerate(tqdm(loader)):
-            x = x.to(self.device)
+        for batch_idx, (images, labels) in enumerate(tqdm(loader)):
+            images = images.to(self.device).float() / 255
             with torch.no_grad():
-                predictions = model(x)
+                predictions = model(images)
 
             pred_bboxes = cells_to_bboxes(predictions, anchors, strides=model.head.stride, is_pred=True,
                                           list_output=False)

@@ -21,11 +21,9 @@ class MS_COCO_2017(Dataset):
 
     def __init__(self,
                  num_classes,
-                 anchors,
                  root_directory=config.ROOT_DIR,
                  transform=None,
                  train=True,
-                 S=(8, 16, 32),
                  rect_training=False,
                  default_size=640,
                  bs=64,
@@ -46,15 +44,11 @@ class MS_COCO_2017(Dataset):
         self.ultralytics_loss = ultralytics_loss
         self.nc = num_classes
         self.transform = transform
-        self.anchors = torch.tensor(anchors[0] + anchors[1] + anchors[2])
-        self.num_anchors = self.anchors.shape[0]
-        self.S = S
-        self.num_anchors_per_scale = self.num_anchors // 3
-        self.ignore_iou_thresh = 0.5
         self.rect_training = rect_training
         self.default_size = default_size
         self.root_directory = root_directory
         self.train = train
+
         if train:
             fname = 'images/train2017'
             annot_file = "annot_train.csv"
@@ -148,7 +142,8 @@ class MS_COCO_2017(Dataset):
         if self.ultralytics_loss:
             labels = torch.from_numpy(labels)
             out_bboxes = torch.zeros((labels.shape[0], 6))
-            out_bboxes[..., 1:] = labels
+            if len(labels):
+                out_bboxes[..., 1:] = labels
 
         img = img.transpose((2, 0, 1))
         img = np.ascontiguousarray(img)
@@ -340,8 +335,7 @@ class MS_COCO_2017_VALIDATION(Dataset):
                    for S in self.S]
 
         for idx, box in enumerate(bboxes):
-            class_label = classes[idx] - 1  # classes in coco start from 1
-            #box = coco_to_yolo(box, image_w=tg_width, image_h=tg_height)
+
             # this iou() computer iou just by comparing widths and heights
             # torch.tensor(box[2:4] -> shape (2,) - self.anchors shape -> (9,2)
             # iou_anchors --> tensor of shape (9,)
