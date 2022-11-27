@@ -37,24 +37,25 @@ def get_loaders(
         num_workers=4,
         pin_memory=torch.cuda.is_available(),
         rect_training=False,
-        coco128val=False
+        bboxes_format="yolo",
+        ultralytics_loss=False
 ):
 
     S = [8, 16, 32]
 
-    train_augmentation = config.ADAPTIVE_TRAIN_TRANSFORM if rect_training else config.TRAIN_TRANSFORMS
-    val_augmentation = config.ADAPTIVE_VAL_TRANSFORM if rect_training else config.VAL_TRANSFORM
+    train_augmentation = config.TRAIN_TRANSFORMS
+    val_augmentation = None
 
     # bs here is not batch_size, check class method "adaptive_shape" to check behavior
     train_ds = MS_COCO_2017(num_classes=len(config.COCO80), anchors=config.ANCHORS,
                             root_directory=db_root_dir, transform=train_augmentation,
-                            train=True, S=S, rect_training=rect_training, bs=64,
-                            default_size=640)
+                            train=True, S=S, rect_training=rect_training, bs=batch_size,
+                            bboxes_format=bboxes_format, ultralytics_loss=ultralytics_loss)
 
     val_ds = MS_COCO_2017_VALIDATION(num_classes=len(config.COCO80), anchors=config.ANCHORS,
                                      root_directory=db_root_dir, transform=val_augmentation,
-                                     train=False, S=S, rect_training=rect_training, bs=64,
-                                     default_size=640, coco_128=coco128val)
+                                     train=False, S=S, rect_training=rect_training, bs=batch_size,
+                                     default_size=640, bboxes_format=bboxes_format)
 
     shuffle = False if rect_training else True
 
@@ -64,7 +65,7 @@ def get_loaders(
         num_workers=num_workers,
         pin_memory=pin_memory,
         shuffle=shuffle,
-        collate_fn=train_ds.collate_fn
+        collate_fn=train_ds.collate_fn_ultra if ultralytics_loss else train_ds.collate_fn
     )
 
     val_loader = DataLoader(
@@ -97,8 +98,7 @@ def train_loop(model, loader, optim, loss_fn, scaler, epoch, num_epochs, multi_s
     nb = len(loader)
     optim.zero_grad()
     for idx, (images, bboxes) in enumerate(loop):
-        images = torch.stack(images, dim=0)
-
+        images = images.float() / 255
         if multi_scale_training:
             images = multi_scale(images, target_shape=640, max_stride=32)
 

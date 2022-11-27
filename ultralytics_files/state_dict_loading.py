@@ -53,7 +53,7 @@ if __name__ == "__main__":
     model = YOLOV5m(first_out=first_out, nc=nc, anchors=anchors,
                     ch=(first_out*4, first_out*8, first_out*16), inference=False)
 
-    pretrained_weights = torch.load("ultralytics_files/yolov5m_real.pt")
+    pretrained_weights = torch.load("yolov5m_real.pt")
 
     pt_values = pretrained_weights.values()
 
@@ -86,7 +86,7 @@ if __name__ == "__main__":
     model.load_state_dict(state_dict=state_dict, strict=True)
     model.eval()
 
-    img = np.array(Image.open("ultralytics_files/test_images/zidane.jpg").convert("RGB"))
+    img = np.array(Image.open("test_images/zidane.jpg").convert("RGB"))
     img = transforms.ToTensor()(img)
     if len(img.shape) == 3:
         img = img[None]  # expand for batch dim

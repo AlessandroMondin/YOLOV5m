@@ -9,8 +9,6 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 
 from utils.bboxes_utils import intersection_over_union
-from dataset_ultra import MS_COCO_2017
-from dataset_ultra_my_aug import MS_COCO_2017 as MY_AUG_MS_COCO_2017
 from dataset import MS_COCO_2017
 import config
 from model import YOLOV5m
@@ -59,7 +57,8 @@ class ComputeLoss:
                     print("--------------------------------------------------------------------------------------")
                     f.close()
 
-    def __call__(self, p, targets, batch_idx=None, epoch=None):  # predictions, targets
+    def __call__(self, p, targets, pred_size, batch_idx=None, epoch=None):  # predictions, targets
+        # pred_size is not used but needs to be declared due to train_loop design
         lcls = torch.zeros(1, device=self.device)  # class loss
         lbox = torch.zeros(1, device=self.device)  # box loss
         lobj = torch.zeros(1, device=self.device)  # object loss
@@ -115,7 +114,7 @@ class ComputeLoss:
 
         bs = tobj.shape[0]  # batch size
         # print((lbox + lobj + lcls) * bs)
-        return (lbox + lobj + lcls) * bs, torch.cat((lbox, lobj, lcls)).detach()
+        return (lbox + lobj + lcls) * bs
 
     def build_targets(self, p, targets):
         # Build targets for compute_loss(), input targets(image,class,x,y,w,h),
@@ -334,7 +333,7 @@ if __name__ == "__main__":
     dataset = MS_COCO_2017(num_classes=nc, anchors=config.ANCHORS,
                            root_directory=config.ROOT_DIR, transform=None,
                            train=True, S=S, rect_training=True, default_size=640, bs=4,
-                           bboxes_format="coco", ultralytics_loss=True)
+                           bboxes_format="yolo", ultralytics_loss=True)
 
     collate_fn = dataset.collate_fn_ultra if dataset.ultralytics_loss else dataset.collate_fn
 

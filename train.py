@@ -4,6 +4,7 @@ import os.path
 import torch
 from model import YOLOV5m
 from loss import YOLO_LOSS
+from ultralytics_loss import ComputeLoss
 from torch.optim import Adam
 from utils.validation_utils import YOLO_EVAL
 from utils.training_utils import train_loop, get_loaders
@@ -13,10 +14,11 @@ import config
 
 def arg_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--coco128val", action='store_true', help=" Validate on COCO128")
+    parser.add_argument("--box_format", type=str, default="coco", help="Choose between 'coco' and 'yolo' format")
     parser.add_argument("--nosaveimgs", action='store_true', help="Don't save images predictions in SAVED_IMAGES folder")
     parser.add_argument("--nosavemodel", action='store_true', help="Don't save model weights in SAVED_CHECKPOINT folder")
     parser.add_argument("--epochs", type=int, default=273, help="Num of training epochs")
+    parser.add_argument("--ultralytics_loss", action='store_true', help="Uses ultralytics loss function")
     parser.add_argument("--nosavelogs", action='store_true', help="Don't save train and eval logs on train_eval_metrics")
     parser.add_argument("--rect", action='store_true', help="Performs rectangular training")
     parser.add_argument("--bs", type=int, default=8, help="Set dataloaders batch_size")
@@ -70,10 +72,13 @@ def main(opt):
     # check get_loaders to see how augmentation is set
     train_loader, val_loader = get_loaders(db_root_dir=config.ROOT_DIR, batch_size=opt.bs,
                                            num_workers=opt.nw, rect_training=rect_training,
-                                           coco128val=opt.coco128val)
+                                           bboxes_format=opt.box_format, ultralytics_loss=opt.ultralytics_loss)
 
-    loss_fn = YOLO_LOSS(model, save_logs=save_logs, rect_training=rect_training,
-                        filename=filename, resume=opt.resume)
+    if opt.ultralytics_loss:
+        loss_fn = ComputeLoss(model, save_logs=save_logs, filename=filename, resume=opt.resume)
+    else:
+        loss_fn = YOLO_LOSS(model, save_logs=save_logs, rect_training=rect_training,
+                            filename=filename, resume=opt.resume)
 
     evaluate = YOLO_EVAL(save_logs=save_logs, conf_threshold=config.CONF_THRESHOLD,
                          nms_iou_thresh=config.NMS_IOU_THRESH,  map_iou_thresh=config.MAP_IOU_THRESH,

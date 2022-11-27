@@ -300,7 +300,7 @@ if __name__ == "__main__":
 
     dataset = MS_COCO_2017(num_classes=len(config.COCO80), anchors=config.ANCHORS,
                            root_directory=config.ROOT_DIR, transform=config.TRAIN_TRANSFORMS,
-                           train=True, S=S, rect_training=True, default_size=640, bs=4)
+                           train=True, S=S, rect_training=True, default_size=640, bs=4, bboxes_format="yolo")
 
     anchors = torch.tensor(anchors)
 
@@ -311,7 +311,6 @@ if __name__ == "__main__":
 
     if check_loss:
         for images, bboxes in loader:
-            images = torch.stack(images, dim=0).to(config.DEVICE)
             images = images/255
             if not dataset.rect_training:
                 images = multi_scale(images, target_shape=640, max_stride=32)

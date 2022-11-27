@@ -69,7 +69,7 @@ class MS_COCO_2017(Dataset):
             self.annotations = self.annotations.head((len(self.annotations)-1))  # just removes last line
         except FileNotFoundError:
             annotations = []
-            for img_txt in os.listdir("../datasets/coco128/labels/train2017/"):
+            for img_txt in os.listdir("../../datasets/coco128/labels/train2017/"):
                 img = img_txt.split(".txt")[0]
                 try:
                     w, h = imagesize.get(f"../datasets/coco128/images/train2017/{img}.jpg")

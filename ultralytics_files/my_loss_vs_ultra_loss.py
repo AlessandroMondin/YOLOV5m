@@ -2,7 +2,7 @@ import config
 import torch
 from model import YOLOV5m
 from loss import YOLO_LOSS
-from loss_ultra import ComputeLoss
+from ultralytics_loss import ComputeLoss
 
 check_loss = True
 batch_size = 8
