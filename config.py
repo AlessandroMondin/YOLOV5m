@@ -32,8 +32,6 @@ NMS_IOU_THRESH = 0.6
 # for map 50
 MAP_IOU_THRESH = 0.5
 
-RECT_TRAINING = True
-
 # triple check what anchors REALLY are
 ANCHORS = [
     [(10, 13), (16, 30), (33, 23)],  # P3/8

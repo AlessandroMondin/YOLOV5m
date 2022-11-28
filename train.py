@@ -97,9 +97,9 @@ def main(opt):
 
         model.eval()
 
-        #evaluate.check_class_accuracy(model, val_loader)
+        evaluate.check_class_accuracy(model, val_loader)
 
-        #evaluate.map_pr_rec(model, val_loader, anchors=model.head.anchors, epoch=epoch+1)
+        evaluate.map_pr_rec(model, val_loader, anchors=model.head.anchors, epoch=epoch+1)
 
         # NMS WRONGLY MODIFIED TO TEST THIS FEATURE!!
         if not opt.nosaveimgs:

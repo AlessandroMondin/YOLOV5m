@@ -402,7 +402,7 @@ class MS_COCO_2017_VALIDATION(Dataset):
                         [x_cell, y_cell, width_cell, height_cell]
                     )
                     targets[scale_idx][anchor_on_scale, i, j, 0:4] = box_coordinates
-                    targets[scale_idx][anchor_on_scale, i, j, 5] = int(class_label)
+                    targets[scale_idx][anchor_on_scale, i, j, 5] = int(classes[idx])
                     has_anchor[scale_idx] = True
                 # not understood
 
