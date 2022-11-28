@@ -109,6 +109,7 @@ def train_loop(model, loader, optim, loss_fn, scaler, epoch, num_epochs, multi_s
             out = model(images)
             loss = loss_fn(out, bboxes, pred_size=images.shape[2:4], batch_idx=idx, epoch=epoch)
             avg_batches_loss += loss
+            loss_epoch += loss
 
         # backpropagation
         # check docs here https://pytorch.org/docs/stable/amp.html
@@ -129,5 +130,5 @@ def train_loop(model, loader, optim, loss_fn, scaler, epoch, num_epochs, multi_s
             avg_batches_loss = 0
 
     print(
-        f"==> training_loss: {loss_epoch / len(loader):2f}"
+        f"==> training_loss: {(loss_epoch / nb):.2f}"
     )
