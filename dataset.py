@@ -439,7 +439,8 @@ class MS_COCO_2017_VALIDATION(Dataset):
 
             for i in range(0, len(annotations), self.batch_range):
                 size = [annotations.iloc[i, 2], annotations.iloc[i, 1]]  # [width, height]
-
+                size[0] = size[0] // 32 * 32
+                size[1] = size[1] // 32 * 32
                 if i + self.batch_range <= len(annotations):
                     bs = self.batch_range
                 else:

@@ -59,7 +59,6 @@ class YOLO_EVAL:
             for i in range(3):
                 y[i] = y[i].to(self.device)
                 obj = y[i][..., 4] == 1  # in paper this is Iobj_i
-                noobj = y[i][..., 4] == 0  # in paper this is Iobj_i
 
                 correct_class += torch.sum(
                     torch.argmax(out[i][..., 5:][obj], dim=-1) == y[i][..., 5][obj]
