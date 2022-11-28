@@ -59,6 +59,9 @@ class ComputeLoss:
 
     def __call__(self, p, targets, pred_size, batch_idx=None, epoch=None):  # predictions, targets
         # pred_size is not used but needs to be declared due to train_loop design
+                          
+        targets = targets.to(config.DEVICE, non_blocking=True)
+                          
         lcls = torch.zeros(1, device=self.device)  # class loss
         lbox = torch.zeros(1, device=self.device)  # box loss
         lobj = torch.zeros(1, device=self.device)  # object loss

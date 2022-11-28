@@ -9,11 +9,11 @@ import cv2
 coco128_attempt = False
 parent_dir = Path(__file__).parent.parent
 
-if "/Users/" in str(parent_dir):
-    if coco128_attempt:
-        ROOT_DIR = os.path.join(parent_dir, "datasets", "coco128")
-    else:
-        ROOT_DIR = os.path.join(parent_dir, "datasets", "coco")
+
+if coco128_attempt:
+    ROOT_DIR = os.path.join(parent_dir, "datasets", "coco128")
+else:
+    ROOT_DIR = os.path.join(parent_dir, "datasets", "coco")
 
 FIRST_OUT = 48
 CLS_PW = 1.0
