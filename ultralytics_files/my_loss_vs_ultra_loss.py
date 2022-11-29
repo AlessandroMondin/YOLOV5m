@@ -17,7 +17,7 @@ first_out = 48
 model = YOLOV5m(first_out=first_out, nc=nc, anchors=anchors,
                 ch=(first_out * 4, first_out * 8, first_out * 16), inference=False).to(config.DEVICE)
 
-#model.load_state_dict(state_dict=torch.load("yolov5_my_arch_ultra_w.pt"), strict=True)
+#model.load_state_dict(state_dict=torch.load("yolov5m_coco.pt"), strict=True)
 
 ultra_loss = ComputeLoss(model, save_logs=False, filename="none")
 my_loss = YOLO_LOSS(model, rect_training=True)

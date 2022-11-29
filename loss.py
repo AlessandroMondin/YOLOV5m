@@ -296,7 +296,7 @@ if __name__ == "__main__":
     model = YOLOV5m(first_out=first_out, nc=len(config.COCO80), anchors=anchors,
                     ch=(first_out*4, first_out*8, first_out*16), inference=False).to(config.DEVICE)
 
-    model.load_state_dict(state_dict=torch.load("yolov5_my_arch_ultra_w.pt"), strict=True)
+    model.load_state_dict(state_dict=torch.load("yolov5m_coco.pt"), strict=True)
 
     dataset = MS_COCO_2017(num_classes=len(config.COCO80),
                            root_directory=config.ROOT_DIR, transform=config.TRAIN_TRANSFORMS,

@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import torch
 from model import YOLOV5m
 import config
@@ -82,7 +83,17 @@ if __name__ == "__main__":
 
     # print(equal_layers)
 
-    # torch.save(state_dict, "yolov5_my_arch_ultra_w.pt")
+    # torch.save(state_dict, "yolov5m_coco.pt")
+    no_heads = []
+    for key, vals in state_dict.items():
+        if "head" in key and "anchors" not in key:
+            continue
+        else:
+            no_heads.append([key, vals])
+
+    state_dict_no_heads = OrderedDict(no_heads)
+    #torch.save(state_dict_no_heads, "../yolov5m_coco_nh.pt")
+
     model.load_state_dict(state_dict=state_dict, strict=True)
     model.eval()
 

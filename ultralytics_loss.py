@@ -325,7 +325,7 @@ if __name__ == "__main__":
     model = YOLOV5m(first_out=first_out, nc=nc, anchors=anchors,
                     ch=(first_out * 4, first_out * 8, first_out * 16), inference=False).to(config.DEVICE)
 
-    model.load_state_dict(state_dict=torch.load("yolov5_my_arch_ultra_w.pt"), strict=True)
+    model.load_state_dict(state_dict=torch.load("yolov5m_coco.pt"), strict=True)
     loss_fn = ComputeLoss(model, save_logs=False, filename="none")
 
     """dataset = MY_AUG_MS_COCO_2017(num_classes=nc, anchors=config.ANCHORS,

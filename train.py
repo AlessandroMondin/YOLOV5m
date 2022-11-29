@@ -35,8 +35,6 @@ def arg_parser():
 
 def main(opt):
     opt.data = "FLIR"
-    nc = None
-    labels = None
 
     parent_dir = Path(__file__).parent.parent
     ROOT_DIR = os.path.join(parent_dir, "datasets", opt.data)
@@ -45,6 +43,7 @@ def main(opt):
             data = yaml.load(f, Loader=yaml.FullLoader)
             nc = data["nc"]
             labels = data["names"]
+
     except FileNotFoundError:
         assert (
             config.nc is not None and config.labels is not None
@@ -74,16 +73,18 @@ def main(opt):
         load_optim_checkpoint(opt.filename, optim)
 
     if opt.load_coco_weights:
-        model.load_state_dict(torch.load("yolov5_my_arch_ultra_w.pt"), strict=True)
-        filename = "ULTRALYTICS_PRETRAINED"
-
-    # elif
-    else:
-        if "model" not in "".join(os.listdir("SAVED_CHECKPOINT")):
-            filename = "model_1"
+        # if dataset is coco loads all the weights
+        if opt.data == "coco":
+            model.load_state_dict(torch.load("yolov5m_coco.pt"), strict=True)
+            # loads all coco weights but the heads
         else:
-            last_model_name = os.listdir("SAVED_CHECKPOINT")[-1]
-            filename = "model_" + str(int(last_model_name.split("_")[1]) + 1)
+            model.load_state_dict(torch.load("yolov5m_coco_nh.pt"), strict=True)
+
+    if "model" not in "".join(os.listdir("SAVED_CHECKPOINT")):
+        filename = "model_1"
+    else:
+        last_model_name = os.listdir("SAVED_CHECKPOINT")[-1]
+        filename = "model_" + str(int(last_model_name.split("_")[1]) + 1)
 
     save_logs = False if opt.nosavelogs else True
     rect_training = True if opt.rect else False
