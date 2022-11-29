@@ -52,7 +52,7 @@ def make_grid(anchors, naxs, stride, nx=20, ny=20, i=0, pred=False):
     return grid, anchor_grid
 
 
-def save_predictions(model, loader, folder, epoch, device, filename, num_images=10):
+def save_predictions(model, loader, folder, epoch, device, filename, num_images=10, labels=config.COCO):
 
     print("=> Saving images predictions...")
 
@@ -81,7 +81,7 @@ def save_predictions(model, loader, folder, epoch, device, filename, num_images=
             gt_boxes = nms(gt_boxes, iou_threshold=0.45, threshold=0.7)[0]
 
             cmap = plt.get_cmap("tab20b")
-            class_labels = config.COCO80
+            class_labels = labels
             colors = [cmap(i) for i in np.linspace(0, 1, len(class_labels))]
             im = np.array(images[0].permute(1, 2, 0).cpu())
 
@@ -142,10 +142,10 @@ def save_predictions(model, loader, folder, epoch, device, filename, num_images=
     model.train()
 
 
-def plot_image(image, boxes, coco_80=True):
+def plot_image(image, boxes, labels=config.COCO):
     """Plots predicted bounding boxes on the image"""
     cmap = plt.get_cmap("tab20b")
-    class_labels = config.COCO80 if coco_80 else config.COCO_LABELS
+    class_labels = labels
     colors = [cmap(i) for i in np.linspace(0, 1, len(class_labels))]
     im = np.array(image)
 

@@ -1,21 +1,23 @@
-from pathlib import Path
 import os
+from pathlib import Path
 import numpy as np
 import albumentations as A
 import torch.cuda
 from albumentations.pytorch import ToTensorV2
 import cv2
 
-coco128_attempt = False
 parent_dir = Path(__file__).parent.parent
+ROOT_DIR = os.path.join(parent_dir, "datasets", "coco")
 
-
-if coco128_attempt:
-    ROOT_DIR = os.path.join(parent_dir, "datasets", "coco128")
-else:
-    ROOT_DIR = os.path.join(parent_dir, "datasets", "coco")
+# if no yaml file, this must be manually inserted
+# nc is number of classes (int)
+nc = None
+# list containing the labels of classes: i.e. ["cat", "dog"]
+labels = None
 
 FIRST_OUT = 48
+
+
 CLS_PW = 1.0
 OBJ_PW = 1.0
 
@@ -25,7 +27,6 @@ WEIGHT_DECAY = 5e-4
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 IMAGE_SIZE = 640
-
 
 CONF_THRESHOLD = 0.001  # to get all possible bboxes, trade-off metrics/speed --> we choose metrics
 NMS_IOU_THRESH = 0.6
@@ -69,101 +70,12 @@ TRAIN_TRANSFORMS = A.Compose(
     bbox_params=A.BboxParams("yolo", min_visibility=0.4, label_fields=[],),
 )
 
-COCO_LABELS = [
-    'person',
-     'bicycle',
-     'car',
-     'motorcycle',
-     'airplane',
-     'bus',
-     'train',
-     'truck',
-     'boat',
-     'traffic light',
-     'fire hydrant',
-     'street sign',
-     'stop sign',
-     'parking meter',
-     'bench',
-     'bird',
-     'cat',
-     'dog',
-     'horse',
-     'sheep',
-     'cow',
-     'elephant',
-     'bear',
-     'zebra',
-     'giraffe',
-     'hat',
-     'backpack',
-     'umbrella',
-     'shoe',
-     'eye glasses',
-     'handbag',
-     'tie',
-     'suitcase',
-     'frisbee',
-     'skis',
-     'snowboard',
-     'sports ball',
-     'kite',
-     'baseball bat',
-     'baseball glove',
-     'skateboard',
-     'surfboard',
-     'tennis racket',
-     'bottle',
-     'plate',
-     'wine glass',
-     'cup',
-     'fork',
-     'knife',
-     'spoon',
-     'bowl',
-     'banana',
-     'apple',
-     'sandwich',
-     'orange',
-     'broccoli',
-     'carrot',
-     'hot dog',
-     'pizza',
-     'donut',
-     'cake',
-     'chair',
-     'couch',
-     'potted plant',
-     'bed',
-     'mirror',
-     'dining table',
-     'window',
-     'desk',
-     'toilet',
-     'door',
-     'tv',
-     'laptop',
-     'mouse',
-     'remote',
-     'keyboard',
-     'cell phone',
-     'microwave',
-     'oven',
-     'toaster',
-     'sink',
-     'refrigerator',
-     'blender',
-     'book',
-     'clock',
-     'vase',
-     'scissors',
-     'teddy bear',
-     'hair drier',
-     'toothbrush',
-     'hairbrush',
+FLIR = [
+    'car',
+    'person'
 ]
 
-COCO80 = [
+COCO = [
     "person",
     "bicycle",
     "car",

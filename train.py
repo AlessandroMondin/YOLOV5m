@@ -1,6 +1,7 @@
 import argparse
 import os.path
-
+from pathlib import Path
+import yaml
 import torch
 from model import YOLOV5m
 from loss import YOLO_LOSS
@@ -14,6 +15,7 @@ import config
 
 def arg_parser():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--data", type=str, default="coco", help="Path to dataset")
     parser.add_argument("--box_format", type=str, default="coco", help="Choose between 'coco' and 'yolo' format")
     parser.add_argument("--nosaveimgs", action='store_true', help="Don't save images predictions in SAVED_IMAGES folder")
     parser.add_argument("--nosavemodel", action='store_true', help="Don't save model weights in SAVED_CHECKPOINT folder")
@@ -32,11 +34,28 @@ def arg_parser():
 
 
 def main(opt):
+    opt.data = "FLIR"
+    nc = None
+    labels = None
+
+    parent_dir = Path(__file__).parent.parent
+    ROOT_DIR = os.path.join(parent_dir, "datasets", opt.data)
+    try:
+        with open(os.path.join(ROOT_DIR, "data.yaml"),"r") as f:
+            data = yaml.load(f, Loader=yaml.FullLoader)
+            nc = data["nc"]
+            labels = data["names"]
+    except FileNotFoundError:
+        assert (
+            config.nc is not None and config.labels is not None
+        )
+        nc = config.nc
+        labels = config.labels
 
     first_out = config.FIRST_OUT
     scaler = torch.cuda.amp.GradScaler()
 
-    model = YOLOV5m(first_out=first_out, nc=len(config.COCO80), anchors=config.ANCHORS,
+    model = YOLOV5m(first_out=first_out, nc=nc, anchors=config.ANCHORS,
                     ch=(first_out * 4, first_out * 8, first_out * 16), inference=False).to(config.DEVICE)
 
     optim = Adam(model.parameters(), lr=config.LEARNING_RATE, weight_decay=config.WEIGHT_DECAY)
@@ -70,9 +89,9 @@ def main(opt):
     rect_training = True if opt.rect else False
 
     # check get_loaders to see how augmentation is set
-    train_loader, val_loader = get_loaders(db_root_dir=config.ROOT_DIR, batch_size=opt.bs,
-                                           num_workers=opt.nw, rect_training=rect_training,
-                                           box_format=opt.box_format, ultralytics_loss=opt.ultralytics_loss)
+    train_loader, val_loader = get_loaders(db_root_dir=ROOT_DIR, batch_size=opt.bs, num_classes=nc,
+                                           box_format=opt.box_format, ultralytics_loss=opt.ultralytics_loss,
+                                           rect_training=rect_training, num_workers=opt.nw)
 
     if opt.ultralytics_loss:
         loss_fn = ComputeLoss(model, save_logs=save_logs, filename=filename, resume=opt.resume)
@@ -83,7 +102,6 @@ def main(opt):
     evaluate = YOLO_EVAL(save_logs=save_logs, conf_threshold=config.CONF_THRESHOLD,
                          nms_iou_thresh=config.NMS_IOU_THRESH,  map_iou_thresh=config.MAP_IOU_THRESH,
                          device=config.DEVICE, filename=filename, resume=opt.resume)
-
 
     # starting epoch is used only when training is resumed by loading weights
     for epoch in range(0 + starting_epoch, opt.epochs + starting_epoch):
@@ -104,7 +122,8 @@ def main(opt):
         # NMS WRONGLY MODIFIED TO TEST THIS FEATURE!!
         if not opt.nosaveimgs:
             save_predictions(model=model, loader=val_loader, epoch=epoch, num_images=5,
-                             folder="SAVED_IMAGES", device=config.DEVICE, filename=filename)
+                             folder="SAVED_IMAGES", device=config.DEVICE, filename=filename,
+                             labels=labels)
 
         checkpoint = {
             "state_dict": model.state_dict(),

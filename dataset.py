@@ -42,23 +42,23 @@ class MS_COCO_2017(Dataset):
 
         self.bboxes_format = bboxes_format
         self.ultralytics_loss = ultralytics_loss
+        self.root_directory = root_directory
         self.nc = num_classes
         self.transform = transform
         self.rect_training = rect_training
         self.default_size = default_size
-        self.root_directory = root_directory
         self.train = train
 
         if train:
-            fname = 'images/train2017'
+            fname = 'images/train'
             annot_file = "annot_train.csv"
             # class instance because it's used in the __getitem__
-            self.annot_folder = "train2017"
+            self.annot_folder = "train"
         else:
-            fname = 'images/val2017'
+            fname = 'images/val'
             annot_file = "annot_val.csv"
             # class instance because it's used in the __getitem__
-            self.annot_folder = "val2017"
+            self.annot_folder = "val"
 
         self.fname = fname
 
@@ -101,7 +101,7 @@ class MS_COCO_2017(Dataset):
             # to avoid negative values
             labels[:, 3:5] = np.floor(labels[:, 3:5] * 1000) / 1000
 
-        img = np.array(Image.open(os.path.join(config.ROOT_DIR, self.fname, img_name)).convert("RGB"))
+        img = np.array(Image.open(os.path.join(self.root_directory, self.fname, img_name)).convert("RGB"))
 
         if self.bboxes_format == "coco":
             labels[:, -1] -= 1  # 0-indexing the classes of coco labels (1-80 --> 0-79)
@@ -248,15 +248,15 @@ class MS_COCO_2017_VALIDATION(Dataset):
         self.root_directory = root_directory
         self.train = train
         if train:
-            fname = 'images/train2017'
+            fname = 'images/train'
             annot_file = "annot_train.csv"
             # class instance because it's used in the __getitem__
-            self.annot_folder = "train2017"
+            self.annot_folder = "train"
         else:
-            fname = 'images/val2017'
+            fname = 'images/val'
             annot_file = "annot_val.csv"
             # class instance because it's used in the __getitem__
-            self.annot_folder = "val2017"
+            self.annot_folder = "val"
 
         self.fname = fname
 
@@ -291,7 +291,7 @@ class MS_COCO_2017_VALIDATION(Dataset):
         tg_width = self.annotations.iloc[idx, 2] if self.rect_training else 640
         # print(f'image_name: {img_name}, idx: {idx}, tg_height: {tg_height}, tg_width: {tg_width}')
         # img_name[:-4] to remove the .jpg or .png which are coco img formats
-        label_path = os.path.join(os.path.join(config.ROOT_DIR, "labels", self.annot_folder, img_name[:-4] + ".txt"))
+        label_path = os.path.join(os.path.join(self.root_directory, "labels", self.annot_folder, img_name[:-4] + ".txt"))
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             labels = np.loadtxt(fname=label_path, delimiter=" ", ndmin=2)
@@ -300,7 +300,7 @@ class MS_COCO_2017_VALIDATION(Dataset):
             # to avoid negative values
             labels[:, 3:5] = np.floor(labels[:, 3:5] * 1000) / 1000
 
-        img = np.array(Image.open(os.path.join(config.ROOT_DIR, self.fname, img_name)).convert("RGB"))
+        img = np.array(Image.open(os.path.join(self.root_directory, self.fname, img_name)).convert("RGB"))
 
         if self.bboxes_format == "coco":
             labels[:, -1] -= 1  # 0-indexing the classes of coco labels (1-80 --> 0-79)
