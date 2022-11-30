@@ -7,8 +7,6 @@ from torch.utils.data import DataLoader
 from utils.training_utils import multi_scale
 from utils.bboxes_utils import (
     iou_width_height,
-    coco_to_yolo,
-    rescale_bboxes,
     intersection_over_union,
     non_max_suppression as nms
 )
@@ -57,11 +55,10 @@ class YOLO_LOSS:
 
         self.balance = [4.0, 1.0, 0.4]  # explanation.. https://github.com/ultralytics/yolov5/issues/2026
 
-        anchors = model.head.anchors.clone().detach()
         self.nc = model.head.nc
-        self.anchors = torch.cat((anchors[0], anchors[1], anchors[2]), dim=0)
+        self.anchors = model.head.anchors.clone().detach()
 
-        self.na = self.anchors.shape[0]
+        self.na = self.anchors.reshape(9,2).shape[0]
         self.num_anchors_per_scale = self.na // 3
         self.S = model.head.stride
         self.ignore_iou_thresh = 0.5
@@ -95,12 +92,10 @@ class YOLO_LOSS:
         t2 = torch.stack([target[1] for target in targets], dim=0).to(config.DEVICE,non_blocking=True)
         t3 = torch.stack([target[2] for target in targets], dim=0).to(config.DEVICE,non_blocking=True)
 
-        anchors = self.anchors.reshape(3, 3, 2)
-
         if self.save_logs:
-            l1, logs1 = self.compute_loss(preds[0], t1, anchors=anchors[0], balance=self.balance[0])
-            l2, logs2 = self.compute_loss(preds[1], t2, anchors=anchors[1,], balance=self.balance[1])
-            l3, logs3 = self.compute_loss(preds[2], t3, anchors=anchors[2], balance=self.balance[2])
+            l1, logs1 = self.compute_loss(preds[0], t1, anchors=self.anchors[0], balance=self.balance[0])
+            l2, logs2 = self.compute_loss(preds[1], t2, anchors=self.anchors[1], balance=self.balance[1])
+            l3, logs3 = self.compute_loss(preds[2], t3, anchors=self.anchors[2], balance=self.balance[2])
             loss = l1 + l2 + l3
 
             freq = 100
@@ -115,22 +110,16 @@ class YOLO_LOSS:
 
         else:
             loss = (
-                self.compute_loss(preds[0], t1, anchors=anchors[0], balance=self.balance[0])[0]
-                + self.compute_loss(preds[1], t2, anchors=anchors[1], balance=self.balance[1])[0]
-                + self.compute_loss(preds[2], t3, anchors=anchors[2], balance=self.balance[2])[0]
+                self.compute_loss(preds[0], t1, anchors=self.anchors[0], balance=self.balance[0])[0]
+                + self.compute_loss(preds[1], t2, anchors=self.anchors[1], balance=self.balance[1])[0]
+                + self.compute_loss(preds[2], t3, anchors=self.anchors[2], balance=self.balance[2])[0]
             )
 
         return loss
 
     def build_targets(self, input_tensor, bboxes, pred_size):
         check_loss = True
-        if check_loss:
-            ph = pred_size[0]
-            pw = pred_size[1]
-        else:
-            pw, ph = input_tensor.shape[3], input_tensor.shape[2]
-        # for loop long ain't elegant :-(
-        
+
         if check_loss:
             targets = [
                 torch.zeros((self.num_anchors_per_scale, input_tensor[i].shape[2],
@@ -152,7 +141,6 @@ class YOLO_LOSS:
                 bboxes = rescale_bboxes(bboxes, starting_size=(640, 640), ending_size=(pw, ph))"""
 
         for idx, box in enumerate(bboxes):
-            # box = coco_to_yolo(box, pw, ph)
 
             iou_anchors = iou_width_height(torch.from_numpy(box[2:4]), self.anchors)
 
@@ -293,16 +281,14 @@ if __name__ == "__main__":
     anchors = config.ANCHORS
     first_out = 48
 
-    model = YOLOV5m(first_out=first_out, nc=len(config.COCO80), anchors=anchors,
+    model = YOLOV5m(first_out=first_out, nc=len(config.COCO), anchors=anchors,
                     ch=(first_out*4, first_out*8, first_out*16), inference=False).to(config.DEVICE)
 
     model.load_state_dict(state_dict=torch.load("yolov5m_coco.pt"), strict=True)
 
-    dataset = MS_COCO_2017(num_classes=len(config.COCO80),
+    dataset = MS_COCO_2017(num_classes=len(config.COCO),
                            root_directory=config.ROOT_DIR, transform=config.TRAIN_TRANSFORMS,
                            train=True, rect_training=True, default_size=640, bs=4, bboxes_format="coco")
-
-    anchors = torch.tensor(anchors)
 
     yolo_loss = YOLO_LOSS(model, rect_training=dataset.rect_training)
 
@@ -331,7 +317,6 @@ if __name__ == "__main__":
 
     else:
         for images, bboxes in loader:
-            images = torch.stack(images, dim=0).to(config.DEVICE)
             images = images / 255
             if not dataset.rect_training:
                 images = multi_scale(images, target_shape=640, max_stride=32)
@@ -342,7 +327,7 @@ if __name__ == "__main__":
             targets = [torch.unsqueeze(target, dim=0) for target in targets]
 
             S = [8, 16, 32]
-            boxes = cells_to_bboxes(targets, anchors, S, list_output=False)
+            boxes = cells_to_bboxes(targets, torch.tensor(anchors), S, list_output=False)
             boxes = nms(boxes, iou_threshold=1, threshold=0.7, max_detections=300)
 
             plot_image(images[0].permute(1, 2, 0).to("cpu"), boxes[0])

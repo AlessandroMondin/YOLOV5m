@@ -238,9 +238,11 @@ class MS_COCO_2017_VALIDATION(Dataset):
         self.bboxes_format = bboxes_format
         self.nc = num_classes
         self.transform = transform
-        self.anchors = torch.tensor(anchors[0] + anchors[1] + anchors[2])
-        self.num_anchors = self.anchors.shape[0]
         self.S = S
+        self.nl = len(anchors[0])
+        self.anchors = torch.tensor(anchors).float().view(self.nl, -1, 2) / torch.tensor(self.S).repeat(6, 1).T.reshape(3, 3, 2)
+        self.num_anchors = self.anchors.reshape(9,2).shape[0]
+
         self.num_anchors_per_scale = self.num_anchors // 3
         self.ignore_iou_thresh = 0.5
         self.rect_training = rect_training
@@ -322,7 +324,6 @@ class MS_COCO_2017_VALIDATION(Dataset):
                 if len(labels):
                     labels = np.roll(labels, axis=1, shift=1)
 
-
         classes = labels[:, 0].tolist() if len(labels) else []
         bboxes = labels[:, 1:] if len(labels) else []
 
@@ -339,7 +340,7 @@ class MS_COCO_2017_VALIDATION(Dataset):
             # this iou() computer iou just by comparing widths and heights
             # torch.tensor(box[2:4] -> shape (2,) - self.anchors shape -> (9,2)
             # iou_anchors --> tensor of shape (9,)
-            iou_anchors = iou_width_height(torch.tensor(box[2:4]), self.anchors/torch.tensor([640, 640]))
+            iou_anchors = iou_width_height(torch.from_numpy(box[2:4]), self.anchors)
             # sorting anchors from the one with best iou with gt_box
             anchor_indices = iou_anchors.argsort(descending=True, dim=0)
             x, y, width, height, = box
@@ -468,7 +469,7 @@ if __name__ == "__main__":
 
     anchors = config.ANCHORS
 
-    dataset = MS_COCO_2017_VALIDATION(num_classes=len(config.COCO80), anchors=config.ANCHORS,
+    dataset = MS_COCO_2017_VALIDATION(num_classes=len(config.COCO), anchors=config.ANCHORS,
                                       root_directory=config.ROOT_DIR, transform=None,
                                       train=False, S=S, rect_training=True, default_size=640, bs=4,
                                       bboxes_format="coco")
