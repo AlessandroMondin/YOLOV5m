@@ -56,7 +56,9 @@ class YOLO_LOSS:
         self.balance = [4.0, 1.0, 0.4]  # explanation.. https://github.com/ultralytics/yolov5/issues/2026
 
         self.nc = model.head.nc
-        self.anchors = model.head.anchors.clone().detach()
+        self.anchors_d = model.head.anchors.clone().detach()
+        self.anchors = model.head.anchors.clone().detach().to("cpu")
+        
 
         self.na = self.anchors.reshape(9,2).shape[0]
         self.num_anchors_per_scale = self.na // 3
@@ -91,11 +93,13 @@ class YOLO_LOSS:
         t1 = torch.stack([target[0] for target in targets], dim=0).to(config.DEVICE,non_blocking=True)
         t2 = torch.stack([target[1] for target in targets], dim=0).to(config.DEVICE,non_blocking=True)
         t3 = torch.stack([target[2] for target in targets], dim=0).to(config.DEVICE,non_blocking=True)
-
+        
+        
+                          
         if self.save_logs:
-            l1, logs1 = self.compute_loss(preds[0], t1, anchors=self.anchors[0], balance=self.balance[0])
-            l2, logs2 = self.compute_loss(preds[1], t2, anchors=self.anchors[1], balance=self.balance[1])
-            l3, logs3 = self.compute_loss(preds[2], t3, anchors=self.anchors[2], balance=self.balance[2])
+            l1, logs1 = self.compute_loss(preds[0], t1, anchors=self.anchors_d[0], balance=self.balance[0])
+            l2, logs2 = self.compute_loss(preds[1], t2, anchors=self.anchors_d[1], balance=self.balance[1])
+            l3, logs3 = self.compute_loss(preds[2], t3, anchors=self.anchors_d[2], balance=self.balance[2])
             loss = l1 + l2 + l3
 
             freq = 100
@@ -110,9 +114,9 @@ class YOLO_LOSS:
 
         else:
             loss = (
-                self.compute_loss(preds[0], t1, anchors=self.anchors[0], balance=self.balance[0])[0]
-                + self.compute_loss(preds[1], t2, anchors=self.anchors[1], balance=self.balance[1])[0]
-                + self.compute_loss(preds[2], t3, anchors=self.anchors[2], balance=self.balance[2])[0]
+                self.compute_loss(preds[0], t1, anchors=self.anchors_d[0], balance=self.balance[0])[0]
+                + self.compute_loss(preds[1], t2, anchors=self.anchors_d[1], balance=self.balance[1])[0]
+                + self.compute_loss(preds[2], t3, anchors=self.anchors_d[2], balance=self.balance[2])[0]
             )
 
         return loss
