@@ -187,6 +187,10 @@ def non_max_suppression(batch_bboxes, iou_threshold, threshold, max_detections=3
     for boxes in batch_bboxes:
         boxes = torch.masked_select(boxes, boxes[..., 1:2] > threshold).reshape(-1, 6)
 
+        # sorts boxes by objectness score
+        _, si = torch.sort(boxes[:, 1], dim=0, descending=True)
+        boxes = boxes[si, :]
+        
         if boxes.shape[0] > max_detections:
             boxes = boxes[:max_detections, :]
 

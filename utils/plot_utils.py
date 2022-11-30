@@ -40,7 +40,7 @@ def cells_to_bboxes(predictions, anchors, strides, is_pred=False, list_output=Tr
     return torch.cat(all_bboxes, dim=1).tolist() if list_output else torch.cat(all_bboxes, dim=1)
 
 
-def make_grid(anchors, naxs, stride, nx=20, ny=20, i=0, pred=False):
+def make_grid(anchors, naxs, stride, nx=20, ny=20, i=0):
     d = anchors[i].device
     t = anchors[i].dtype
     shape = 1, naxs, ny, nx, 2  # grid shape
