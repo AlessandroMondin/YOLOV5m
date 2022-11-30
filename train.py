@@ -35,8 +35,11 @@ def arg_parser():
 
 def main(opt):
 
-    parent_dir = Path(__file__).parent.parent
+    parent_dir = os.path.abspath(Path(__file__))
+    parent_dir = "/".join(parent_dir.split("/")[:-2])
+    
     ROOT_DIR = os.path.join(parent_dir, "datasets", opt.data)
+
     try:
         with open(os.path.join(ROOT_DIR, "data.yaml"),"r") as f:
             data = yaml.load(f, Loader=yaml.FullLoader)
@@ -82,8 +85,10 @@ def main(opt):
     if "model" not in "".join(os.listdir("SAVED_CHECKPOINT")):
         filename = "model_1"
     else:
-        last_model_name = os.listdir("SAVED_CHECKPOINT")[-1]
-        filename = "model_" + str(int(last_model_name.split("_")[1]) + 1)
+        models_saved = os.listdir("SAVED_CHECKPOINT")
+        models_saved = [model_name for model_name in models_saved if "model" in model_name][-1] # gets rid of weird files
+
+        filename = "model_" + str(int(models_saved.split("_")[1]) + 1)
 
     save_logs = False if opt.nosavelogs else True
     rect_training = True if opt.rect else False

@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import math
 from torchvision.ops import nms
+import config
 
 # ALADDIN'S
 def iou_width_height(gt_box, anchors, strided_anchors=True, stride=[8, 16, 32]):
@@ -18,7 +19,7 @@ def iou_width_height(gt_box, anchors, strided_anchors=True, stride=[8, 16, 32]):
     # intersection shape: (9,)
     anchors /= 640
     if strided_anchors:
-        anchors = anchors * torch.tensor(stride).repeat(6, 1).T.reshape(9, 2)
+        anchors = anchors * torch.tensor(stride, device=config.DEVICE).repeat(6, 1).T.reshape(9, 2)
 
     intersection = torch.min(gt_box[..., 0], anchors[..., 0]) * torch.min(
         gt_box[..., 1], anchors[..., 1]

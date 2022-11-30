@@ -131,5 +131,5 @@ def train_loop(model, loader, optim, loss_fn, scaler, epoch, num_epochs, multi_s
             avg_batches_loss = 0
 
     print(
-        f"==> training_loss: {(loss_epoch / nb):.2f}"
+        f"==> training_loss: {(loss_epoch.item() / nb):.2f}"
     )
