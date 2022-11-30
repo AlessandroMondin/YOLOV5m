@@ -3,45 +3,11 @@ import torch
 from model import YOLOV5m
 import config
 import numpy as np
-import cv2
 
 from PIL import Image
 from torchvision import transforms
 from utils.bboxes_utils import non_max_suppression
 from utils.plot_utils import cells_to_bboxes, plot_image
-
-# ULTRALYTICS NOT USED
-def letterbox(im, new_shape=(640, 640), color=(114, 114, 114), auto=True, scaleFill=False, scaleup=True, stride=32):
-    # Resize and pad image while meeting stride-multiple constraints
-    shape = im.shape[:2]  # current shape [height, width]
-    if isinstance(new_shape, int):
-        new_shape = (new_shape, new_shape)
-
-    # Scale ratio (new / old)
-    r = min(new_shape[0] / shape[0], new_shape[1] / shape[1])
-    if not scaleup:  # only scale down, do not scale up (for better val mAP)
-        r = min(r, 1.0)
-
-    # Compute padding
-    ratio = r, r  # width, height ratios
-    new_unpad = int(round(shape[1] * r)), int(round(shape[0] * r))
-    dw, dh = new_shape[1] - new_unpad[0], new_shape[0] - new_unpad[1]  # wh padding
-    if auto:  # minimum rectangle
-        dw, dh = np.mod(dw, stride), np.mod(dh, stride)  # wh padding
-    elif scaleFill:  # stretch
-        dw, dh = 0.0, 0.0
-        new_unpad = (new_shape[1], new_shape[0])
-        ratio = new_shape[1] / shape[1], new_shape[0] / shape[0]  # width, height ratios
-
-    dw /= 2  # divide padding into 2 sides
-    dh /= 2
-
-    if shape[::-1] != new_unpad:  # resize
-        im = cv2.resize(im, new_unpad, interpolation=cv2.INTER_LINEAR)
-    top, bottom = int(round(dh - 0.1)), int(round(dh + 0.1))
-    left, right = int(round(dw - 0.1)), int(round(dw + 0.1))
-    im = cv2.copyMakeBorder(im, top, bottom, left, right, cv2.BORDER_CONSTANT, value=color)  # add border
-    return im, ratio, (dw, dh)
 
 
 if __name__ == "__main__":
@@ -51,7 +17,7 @@ if __name__ == "__main__":
     first_out = 48
     S = [8, 16, 32]
 
-    model = YOLOV5m(first_out=first_out, nc=nc, anchors=anchors,
+    """model = YOLOV5m(first_out=first_out, nc=nc, anchors=anchors,
                     ch=(first_out*4, first_out*8, first_out*16), inference=False)
 
     pretrained_weights = torch.load("yolov5m_real.pt")
@@ -82,8 +48,30 @@ if __name__ == "__main__":
             equal_layers += 1
 
     # print(equal_layers)
+    torch.save(state_dict, "../yolov5m_coco.pt")
+    model.load_state_dict(torch.load("../yolov5m_coco.pt"))
 
-    # torch.save(state_dict, "yolov5m_coco.pt")
+    state_dict = model.state_dict()
+    car_person_heads = []
+    for key, vals in state_dict.items():
+        if "head" in key and "anchors" not in key:
+            if len(vals.shape) > 1:
+                layer_1 = torch.cat([vals[0:5, :, :, :], vals[7:8, :, :, :], vals[5:6, :, :, :]], dim=0)
+                layer_2 = torch.cat([vals[85:90, :, :, :], vals[92:93, :, :, :], vals[90:91, :, :, :]], dim=0)
+                layer_3 = torch.cat([vals[170:175, :, :, :], vals[177:178, :, :, :], vals[175:176, :, :, :]], dim=0)
+                car_person_heads.append([key, torch.cat([layer_1, layer_2, layer_3], dim=0)])
+            else:
+                layer_1 = torch.cat([vals[0:5], vals[7:8], vals[5:6]], dim=0)
+                layer_2 = torch.cat([vals[85:90], vals[92:93], vals[90:91]], dim=0)
+                layer_3 = torch.cat([vals[170:175], vals[177:178], vals[175:176]], dim=0)
+                car_person_heads.append([key, torch.cat([layer_1, layer_2, layer_3], dim=0)])
+
+        else:
+            car_person_heads.append([key, vals])
+
+    state_dict_cp = OrderedDict(car_person_heads)
+    torch.save(OrderedDict(car_person_heads), "../yolov5m_coco_cp.pt")
+
     no_heads = []
     for key, vals in state_dict.items():
         if "head" in key and "anchors" not in key:
@@ -92,9 +80,13 @@ if __name__ == "__main__":
             no_heads.append([key, vals])
 
     state_dict_no_heads = OrderedDict(no_heads)
-    #torch.save(state_dict_no_heads, "../yolov5m_coco_nh.pt")
 
-    model.load_state_dict(state_dict=state_dict, strict=True)
+    torch.save(state_dict_no_heads, "../yolov5m_coco_cp.pt.pt")"""
+
+    model = YOLOV5m(first_out=first_out, nc=80, anchors=anchors,
+                    ch=(first_out * 4, first_out * 8, first_out * 16), inference=False)
+
+    model.load_state_dict(state_dict=torch.load("../yolov5m_coco.pt"), strict=True)
     model.eval()
 
     img = np.array(Image.open("test_images/zidane.jpg").convert("RGB"))

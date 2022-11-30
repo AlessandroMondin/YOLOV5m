@@ -34,6 +34,7 @@ NMS_IOU_THRESH = 0.6
 MAP_IOU_THRESH = 0.5
 
 # triple check what anchors REALLY are
+
 ANCHORS = [
     [(10, 13), (16, 30), (33, 23)],  # P3/8
     [(30, 61), (62, 45), (59, 119)],  # P4/16

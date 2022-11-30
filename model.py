@@ -156,14 +156,12 @@ class HEADS(nn.Module):
         # https://pytorch.org/docs/stable/generated/torch.nn.Module.html command+f register_buffer
         # has the same result as self.anchors = anchors but, it's a way to register a buffer (make
         # a variable available in runtime) that should not be considered a model parameter
-        #self.anchors = torch.tensor(anchors, device=config.DEVICE).float().view(self.nl, -1, 2)  # shape(nl,na,2)
         self.stride = [8, 16, 32]
         anchors_ = torch.tensor(anchors).float().view(self.nl, -1, 2) / torch.tensor(self.stride).repeat(6, 1).T.reshape(3, 3, 2)
         self.register_buffer('anchors', anchors_)  # shape(nl,na,2)
 
         self.m = nn.ModuleList(nn.Conv2d(x, self.no * self.naxs, 1) for x in ch)  # output conv
         self.inference = inference
-
 
     def forward(self, x):
         z = []  # inference output

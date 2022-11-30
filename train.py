@@ -34,7 +34,6 @@ def arg_parser():
 
 
 def main(opt):
-    opt.data = "FLIR"
 
     parent_dir = Path(__file__).parent.parent
     ROOT_DIR = os.path.join(parent_dir, "datasets", opt.data)
@@ -78,7 +77,7 @@ def main(opt):
             model.load_state_dict(torch.load("yolov5m_coco.pt"), strict=True)
             # loads all coco weights but the heads
         else:
-            model.load_state_dict(torch.load("yolov5m_coco_nh.pt"), strict=True)
+            model.load_state_dict(torch.load("yolov5m_coco_nh.pt"), strict=False)
 
     if "model" not in "".join(os.listdir("SAVED_CHECKPOINT")):
         filename = "model_1"

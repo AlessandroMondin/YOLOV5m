@@ -161,12 +161,12 @@ def plot_image(image, boxes, labels=config.COCO):
     for box in boxes:
         assert len(box) == 6, "box should contain class pred, confidence, x, y, width, height"
         class_pred = box[0]
-        box = box[2:]
+        bbox = box[2:]
 
         # FOR MY_NMS attempts, also rect = patches.Rectangle box[2] becomes box[2] - box[0] and box[3] - box[1]
-        upper_left_x = max(box[0], 0)
+        upper_left_x = max(bbox[0], 0)
         upper_left_x = min(upper_left_x, im.shape[1])
-        lower_left_y = max(box[1], 0)
+        lower_left_y = max(bbox[1], 0)
         lower_left_y = min(lower_left_y, im.shape[0])
 
         """upper_left_x = max(box[0] - box[2] / 2, 0)
@@ -176,8 +176,8 @@ def plot_image(image, boxes, labels=config.COCO):
 
         rect = patches.Rectangle(
             (upper_left_x, lower_left_y),
-            box[2] - box[0],
-            box[3] - box[1],
+            bbox[2] - bbox[0],
+            bbox[3] - bbox[1],
             linewidth=2,
             edgecolor=colors[int(class_pred)],
             facecolor="none",
@@ -187,7 +187,7 @@ def plot_image(image, boxes, labels=config.COCO):
         plt.text(
             upper_left_x,
             lower_left_y,
-            s=class_labels[int(class_pred)],
+            s=f"{class_labels[int(class_pred)]}: {box[1]:.2f}",
             color="white",
             verticalalignment="top",
             bbox={"color": colors[int(class_pred)], "pad": 0},
