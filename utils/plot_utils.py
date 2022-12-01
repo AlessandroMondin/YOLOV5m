@@ -56,7 +56,7 @@ def save_predictions(model, loader, folder, epoch, device, filename, num_images=
 
     print("=> Saving images predictions...")
 
-    if not os.path.exists(path=os.path.join(os.getcwd(), folder, filename, f'EPOCH_{str(epoch + 1)}')):
+    if not os.path.exists(path=os.path.join(os.getcwd(), folder, filename, f'EPOCH_{str(epoch)}')):
         os.makedirs(os.path.join(os.getcwd(), folder, filename, f'EPOCH_{str(epoch)}'))
 
     path = os.path.join(os.getcwd(), folder, filename, f'EPOCH_{str(epoch)}')

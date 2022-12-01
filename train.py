@@ -63,7 +63,7 @@ def main(opt):
 
     # if no models are saved in checkpoints, creates model0 files,
     # else i.e. if model0.pt is in the folder, new filename will be model1.pt
-    starting_epoch = 0
+    starting_epoch = 1
     # if loading pre-existing weights
 
     if opt.load_coco_weights:
@@ -112,13 +112,13 @@ def main(opt):
 
     # starting epoch is used only when training is resumed by loading weights
     
-    for epoch in range(1 + starting_epoch, opt.epochs + starting_epoch + 1):
+    for epoch in range(starting_epoch, opt.epochs + starting_epoch):
 
         model.train()
 
         if not opt.only_eval:
             train_loop(model=model, loader=train_loader, loss_fn=loss_fn, optim=optim,
-                       scaler=scaler, epoch=starting_epoch, num_epochs=opt.epochs+starting_epoch + 1,
+                       scaler=scaler, epoch=epoch, num_epochs=opt.epochs+starting_epoch,
                        multi_scale_training=not rect_training)
 
         model.eval()
