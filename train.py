@@ -73,18 +73,19 @@ def main(opt):
             # loads all coco weights but the heads
         else:
             model.load_state_dict(torch.load("yolov5m_coco_nh.pt"), strict=False)
-
-            
+        
     if "model" not in "".join(os.listdir("SAVED_CHECKPOINT")):
         filename = "model_1"
         
     elif opt.resume:
         filename = opt.filename
         folder = os.listdir(os.path.join("SAVED_CHECKPOINT", opt.filename))
-        starting_epoch = max([int(ckpt.split(".")[0].split("_")[-1]) for ckpt in folder])
+        last_epoch = max([int(ckpt.split(".")[0].split("_")[-1]) for ckpt in folder])
         
-        load_model_checkpoint(opt.filename, model, starting_epoch)
-        load_optim_checkpoint(opt.filename, optim, starting_epoch)
+        load_model_checkpoint(opt.filename, model, last_epoch)
+        load_optim_checkpoint(opt.filename, optim, last_epoch)
+        starting_epoch = last_epoch + 1
+    
     else:
         models_saved = os.listdir("SAVED_CHECKPOINT")
         models_saved = [int(model_name.split("_")[1]) for model_name in models_saved if "model" in model_name] # gets rid of weird files
@@ -117,7 +118,7 @@ def main(opt):
 
         if not opt.only_eval:
             train_loop(model=model, loader=train_loader, loss_fn=loss_fn, optim=optim,
-                       scaler=scaler, epoch=starting_epoch, num_epochs=opt.epochs,
+                       scaler=scaler, epoch=starting_epoch, num_epochs=opt.epochs+starting_epoch + 1,
                        multi_scale_training=not rect_training)
 
         model.eval()
@@ -137,7 +138,7 @@ def main(opt):
             "optimizer": optim.state_dict(),
         }
         if not opt.nosavemodel:
-            save_checkpoint(checkpoint, folder_path="SAVED_CHECKPOINT", filename=filename, epoch=epoch+1)
+            save_checkpoint(checkpoint, folder_path="SAVED_CHECKPOINT", filename=filename, epoch=epoch)
 
 
 if __name__ == "__main__":
