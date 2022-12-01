@@ -109,20 +109,20 @@ def main(opt):
                          device=config.DEVICE, filename=filename, resume=opt.resume)
 
     # starting epoch is used only when training is resumed by loading weights
-    for epoch in range(0 + starting_epoch, opt.epochs + starting_epoch):
+    for epoch in range(1 + starting_epoch, opt.epochs + starting_epoch + 1):
 
         model.train()
 
         if not opt.only_eval:
             train_loop(model=model, loader=train_loader, loss_fn=loss_fn, optim=optim,
-                       scaler=scaler, epoch=0+starting_epoch, num_epochs=opt.epochs + starting_epoch,
+                       scaler=scaler, epoch=epoch+starting_epoch, num_epochs=opt.epochs + starting_epoch,
                        multi_scale_training=not rect_training)
 
         model.eval()
 
         evaluate.check_class_accuracy(model, val_loader)
 
-        evaluate.map_pr_rec(model, val_loader, anchors=model.head.anchors, epoch=epoch+1)
+        evaluate.map_pr_rec(model, val_loader, anchors=model.head.anchors, epoch=epoch)
 
         # NMS WRONGLY MODIFIED TO TEST THIS FEATURE!!
         if not opt.nosaveimgs:

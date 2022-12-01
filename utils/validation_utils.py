@@ -105,10 +105,10 @@ class YOLO_EVAL:
             true_bboxes = cells_to_bboxes(labels, anchors, strides=model.head.stride, is_pred=False, list_output=False)
 
             pred_boxes = non_max_suppression(pred_bboxes, iou_threshold=self.nms_iou_thresh, threshold=self.conf_threshold, 
-                                             tolist=False, max_detections=5000)
+                                             tolist=False, max_detections=10000)
 
             true_bboxes = non_max_suppression(true_bboxes, iou_threshold=self.nms_iou_thresh,
-                                              threshold=self.conf_threshold, tolist=False, max_detections=5000)
+                                              threshold=self.conf_threshold, tolist=False, max_detections=1000)
 
             all_predictions.append(pred_boxes)
 
@@ -136,10 +136,7 @@ class YOLO_EVAL:
         metric = MeanAveragePrecision(max_detection_thresholds=[1000])
         metric.update(preds, target)
 
-        metrics = metric.compute()
-                          
-        print(metrics)                  
-
+        metrics = metric.compute()                
         map50 = metrics["map_50"]
         map75 = metrics["map_75"]
 
