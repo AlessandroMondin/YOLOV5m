@@ -113,7 +113,7 @@ def save_predictions(model, loader, folder, epoch, device, filename, num_images=
                         (upper_left_x, lower_left_y),
                         box[2] - box[0],
                         box[3] - box[1],
-                        linewidth=2,
+                        linewidth=1,
                         edgecolor=colors[class_pred],
                         facecolor="none",
                     )
@@ -130,7 +130,7 @@ def save_predictions(model, loader, folder, epoch, device, filename, num_images=
                         color="white",
                         verticalalignment="top",
                         bbox={"color": colors[class_pred], "pad": 0},
-                        fontsize="small"
+                        fontsize="x-small"
                     )
 
             fig.savefig(f'{path}/image_{idx}.png', dpi=300)

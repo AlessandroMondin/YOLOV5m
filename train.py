@@ -65,14 +65,6 @@ def main(opt):
     # else i.e. if model0.pt is in the folder, new filename will be model1.pt
     starting_epoch = 0
     # if loading pre-existing weights
-    if opt.resume:
-        filename = opt.filename
-        folder = os.listdir(os.path.join("SAVED_CHECKPOINT", opt.filename))
-        # getting the epoch of the last filename by str wrangling
-        starting_epoch = int(folder[-1].split(".")[0].split("_")[-1]) + 1
-
-        load_model_checkpoint(opt.filename, model)
-        load_optim_checkpoint(opt.filename, optim)
 
     if opt.load_coco_weights:
         # if dataset is coco loads all the weights
@@ -82,8 +74,17 @@ def main(opt):
         else:
             model.load_state_dict(torch.load("yolov5m_coco_nh.pt"), strict=False)
 
+            
     if "model" not in "".join(os.listdir("SAVED_CHECKPOINT")):
         filename = "model_1"
+        
+    elif opt.resume:
+        filename = opt.filename
+        folder = os.listdir(os.path.join("SAVED_CHECKPOINT", opt.filename))
+        starting_epoch = max([int(ckpt.split(".")[0].split("_")[-1]) for ckpt in folder])
+        
+        load_model_checkpoint(opt.filename, model, starting_epoch)
+        load_optim_checkpoint(opt.filename, optim, starting_epoch)
     else:
         models_saved = os.listdir("SAVED_CHECKPOINT")
         models_saved = [int(model_name.split("_")[1]) for model_name in models_saved if "model" in model_name] # gets rid of weird files
@@ -109,13 +110,14 @@ def main(opt):
                          device=config.DEVICE, filename=filename, resume=opt.resume)
 
     # starting epoch is used only when training is resumed by loading weights
+    
     for epoch in range(1 + starting_epoch, opt.epochs + starting_epoch + 1):
 
         model.train()
 
         if not opt.only_eval:
             train_loop(model=model, loader=train_loader, loss_fn=loss_fn, optim=optim,
-                       scaler=scaler, epoch=epoch+starting_epoch, num_epochs=opt.epochs + starting_epoch,
+                       scaler=scaler, epoch=starting_epoch, num_epochs=opt.epochs,
                        multi_scale_training=not rect_training)
 
         model.eval()

@@ -28,7 +28,7 @@ WEIGHT_DECAY = 5e-4
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 IMAGE_SIZE = 640
 
-CONF_THRESHOLD = 0.001  # to get all possible bboxes, trade-off metrics/speed --> we choose metrics
+CONF_THRESHOLD = 0.01  # to get all possible bboxes, trade-off metrics/speed --> we choose metrics
 NMS_IOU_THRESH = 0.6
 # for map 50
 MAP_IOU_THRESH = 0.5

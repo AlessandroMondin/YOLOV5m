@@ -62,21 +62,23 @@ def save_checkpoint(state, folder_path, filename, epoch):
     torch.save(state, os.path.join(path, f"checkpoint_epoch_{str(epoch)}.pth.tar"))
 
 
-def load_model_checkpoint(model_name, model):
+def load_model_checkpoint(model_name, model, last_epoch):
     folder = os.listdir(os.path.join("SAVED_CHECKPOINT", model_name))
-    file = folder[-1]
-    print(f"=> loading the last epoch of SAVED_CHECKPOINT/{model_name}")
-
-    checkpoint = torch.load(os.path.join("SAVED_CHECKPOINT", model_name, file), map_location=config.DEVICE)
+    
+    ckpt_name = f"checkpoint_epoch_{last_epoch}.pth.tar"
+    print(f"==> loading model weights stored in {ckpt_name} ")
+    
+    checkpoint = torch.load(os.path.join("SAVED_CHECKPOINT", model_name, ckpt_name), map_location=config.DEVICE)
     model.load_state_dict(checkpoint["state_dict"])
 
 
-def load_optim_checkpoint(model_name, optim):
+def load_optim_checkpoint(model_name, optim, last_epoch):
     folder = os.listdir(os.path.join("SAVED_CHECKPOINT", model_name))
-    file = folder[-1]
-    print(f"=> loading the last epoch of SAVED_CHECKPOINT/{model_name}")
 
-    checkpoint = torch.load(os.path.join("SAVED_CHECKPOINT", model_name, file), map_location=config.DEVICE)
+    ckpt_name = f"checkpoint_epoch_{last_epoch}.pth.tar"
+    print(f"==> loading optimizer stored in {ckpt_name}")
+    
+    checkpoint = torch.load(os.path.join("SAVED_CHECKPOINT", model_name, ckpt_name), map_location=config.DEVICE)
     optim.load_state_dict(checkpoint["optimizer"])
 
 
