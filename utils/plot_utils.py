@@ -57,9 +57,9 @@ def save_predictions(model, loader, folder, epoch, device, filename, num_images=
     print("=> Saving images predictions...")
 
     if not os.path.exists(path=os.path.join(os.getcwd(), folder, filename, f'EPOCH_{str(epoch + 1)}')):
-        os.makedirs(os.path.join(os.getcwd(), folder, filename, f'EPOCH_{str(epoch + 1)}'))
+        os.makedirs(os.path.join(os.getcwd(), folder, filename, f'EPOCH_{str(epoch)}'))
 
-    path = os.path.join(os.getcwd(), folder, filename, f'EPOCH_{str(epoch + 1)}')
+    path = os.path.join(os.getcwd(), folder, filename, f'EPOCH_{str(epoch)}')
     anchors = model.head.anchors
 
     model.eval()
@@ -130,7 +130,7 @@ def save_predictions(model, loader, folder, epoch, device, filename, num_images=
                         color="white",
                         verticalalignment="top",
                         bbox={"color": colors[class_pred], "pad": 0},
-                        fontsize="x-small"
+                        fontsize="xx-small"
                     )
 
             fig.savefig(f'{path}/image_{idx}.png', dpi=300)
