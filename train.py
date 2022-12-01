@@ -41,7 +41,7 @@ def main(opt):
     ROOT_DIR = os.path.join(parent_dir, "datasets", opt.data)
 
     try:
-        with open(os.path.join(ROOT_DIR, "data.yaml"),"r") as f:
+        with open(os.path.join(ROOT_DIR, "data.yaml"), "r") as f:
             data = yaml.load(f, Loader=yaml.FullLoader)
             nc = data["nc"]
             labels = data["names"]
@@ -86,9 +86,9 @@ def main(opt):
         filename = "model_1"
     else:
         models_saved = os.listdir("SAVED_CHECKPOINT")
-        models_saved = [model_name for model_name in models_saved if "model" in model_name][-1] # gets rid of weird files
+        models_saved = [int(model_name.split("_")[1]) for model_name in models_saved if "model" in model_name] # gets rid of weird files
 
-        filename = "model_" + str(int(models_saved.split("_")[1]) + 1)
+        filename = "model_" + str(max(models_saved)+1)
 
     save_logs = False if opt.nosavelogs else True
     rect_training = True if opt.rect else False
