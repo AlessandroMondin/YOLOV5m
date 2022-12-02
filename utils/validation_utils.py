@@ -91,8 +91,9 @@ class YOLO_EVAL:
         model.eval()
 
         # 1) GET EVALUATION BBOXES
-        all_predictions = []
-        all_ground_truths = []
+        preds = []
+        targets = []
+
         for batch_idx, (images, labels) in enumerate(tqdm(loader)):
             images = images.to(self.device).float() / 255
             with torch.no_grad():
@@ -109,31 +110,24 @@ class YOLO_EVAL:
             true_boxes = non_max_suppression(true_boxes, iou_threshold=self.nms_iou_thresh,threshold=self.conf_threshold,
                                              tolist=False, max_detections=300)
 
-            all_predictions.append(pred_boxes)
-
-            all_ground_truths.append(true_boxes)
-
-        preds = torch.cat(all_predictions, dim=0)
-        targets = torch.cat(all_ground_truths, dim=0)
-
-        preds = [
-            dict(
-                boxes=preds[..., 2:],
-                scores=preds[..., 1],
-                labels=preds[..., 0],
+            preds.append(
+                dict(
+                    boxes=pred_boxes[..., 2:],
+                    scores=pred_boxes[..., 1],
+                    labels=pred_boxes[..., 0],
+                )
             )
-        ]
 
-        target = [
-            dict(
-                boxes=targets[..., 2:],
-                labels=targets[..., 0],
+            targets.append(
+                dict(
+                    boxes=true_boxes[..., 2:],
+                    labels=true_boxes[..., 0],
+                )
             )
-        ]
-        
+
         print("...Computing MAP ...")  
-        metric = MeanAveragePrecision(max_detection_thresholds=[1000])
-        metric.update(preds, target)
+        metric = MeanAveragePrecision()
+        metric.update(preds, targets)
 
         metrics = metric.compute()                
         map50 = metrics["map_50"]
