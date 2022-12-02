@@ -187,13 +187,6 @@ def non_max_suppression(batch_bboxes, iou_threshold, threshold, max_detections=3
     for boxes in batch_bboxes:
         boxes = torch.masked_select(boxes, boxes[..., 1:2] > threshold).reshape(-1, 6)
 
-        # sorts boxes by objectness score
-        _, si = torch.sort(boxes[:, 1], dim=0, descending=True)
-        boxes = boxes[si, :]
-        
-        if boxes.shape[0] > max_detections:
-            boxes = boxes[:max_detections, :]
-
         # from xywh to x1y1x2y2
 
         boxes[..., 2:3] = boxes[..., 2:3] - (boxes[..., 4:5] / 2)
@@ -202,8 +195,17 @@ def non_max_suppression(batch_bboxes, iou_threshold, threshold, max_detections=3
         boxes[..., 4:5] = boxes[..., 4:5] + boxes[..., 2:3]
 
         indices = nms(boxes=boxes[..., 2:] + boxes[..., 0:1], scores=boxes[..., 1], iou_threshold=iou_threshold)
+        boxes = boxes[indices]
+
+        # sorts boxes by objectness score but it's already done internally by torch metrics's nms
+        # _, si = torch.sort(boxes[:, 1], dim=0, descending=True)
+        # boxes = boxes[si, :]
+
+        if boxes.shape[0] > max_detections:
+            boxes = boxes[:max_detections, :]
+
         bboxes_after_nms.append(
-            boxes[indices].tolist() if tolist else boxes[indices]
+            boxes.tolist() if tolist else boxes
         )
 
     return bboxes_after_nms if tolist else torch.cat(bboxes_after_nms, dim=0)

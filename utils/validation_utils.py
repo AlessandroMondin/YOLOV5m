@@ -98,21 +98,20 @@ class YOLO_EVAL:
             with torch.no_grad():
                 predictions = model(images)
 
-            pred_bboxes = cells_to_bboxes(predictions, anchors, strides=model.head.stride, is_pred=True,
-                                          list_output=False)
+            pred_boxes = cells_to_bboxes(predictions, anchors, strides=model.head.stride, is_pred=True, list_output=False)
 
             # we just want one bbox for each label, not one for each scale
-            true_bboxes = cells_to_bboxes(labels, anchors, strides=model.head.stride, is_pred=False, list_output=False)
+            true_boxes = cells_to_bboxes(labels, anchors, strides=model.head.stride, is_pred=False, list_output=False)
 
-            pred_boxes = non_max_suppression(pred_bboxes, iou_threshold=self.nms_iou_thresh, threshold=self.conf_threshold, 
-                                             tolist=False, max_detections=10000)
+            pred_boxes = non_max_suppression(pred_boxes, iou_threshold=self.nms_iou_thresh, threshold=self.conf_threshold,
+                                             tolist=False, max_detections=300)
 
-            true_bboxes = non_max_suppression(true_bboxes, iou_threshold=self.nms_iou_thresh,
-                                              threshold=self.conf_threshold, tolist=False, max_detections=1000)
+            true_boxes = non_max_suppression(true_boxes, iou_threshold=self.nms_iou_thresh,threshold=self.conf_threshold,
+                                             tolist=False, max_detections=300)
 
             all_predictions.append(pred_boxes)
 
-            all_ground_truths.append(true_bboxes)
+            all_ground_truths.append(true_boxes)
 
         preds = torch.cat(all_predictions, dim=0)
         targets = torch.cat(all_ground_truths, dim=0)
