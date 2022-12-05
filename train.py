@@ -23,7 +23,7 @@ def arg_parser():
     parser.add_argument("--ultralytics_loss", action='store_true', help="Uses ultralytics loss function")
     parser.add_argument("--nosavelogs", action='store_true', help="Don't save train and eval logs on train_eval_metrics")
     parser.add_argument("--rect", action='store_true', help="Performs rectangular training")
-    parser.add_argument("--bs", type=int, default=8, help="Set dataloaders batch_size")
+    parser.add_argument("--bs", type=int, default=16, help="Set dataloaders batch_size")
     parser.add_argument("--nw", type=int, default=4, help="Set number of workers")
     parser.add_argument("--resume", action='store_true', help="Resume training on a saved checkpoint")
     parser.add_argument("--filename", type=str, help="Model name to use for resume training")

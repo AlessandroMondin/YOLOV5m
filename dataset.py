@@ -28,7 +28,7 @@ class MS_COCO_2017(Dataset):
                  default_size=640,
                  bs=64,
                  bboxes_format="coco",
-                 ultralytics_loss=False
+                 ultralytics_loss=False,
                  ):
         """
         Parameters:
@@ -37,7 +37,7 @@ class MS_COCO_2017(Dataset):
             transform: set of Albumentations transformations to be performed with A.Compose
         """
         assert bboxes_format in ["coco", "yolo"], 'bboxes_format must be either "coco" or "yolo"'
-
+        self.bs = bs
         self.batch_range = 64 if bs < 64 else 128
 
         self.bboxes_format = bboxes_format
@@ -112,33 +112,40 @@ class MS_COCO_2017(Dataset):
         img = resize_image(img, (int(tg_width), int(tg_height)))
 
         if self.transform:
-            if len(labels) > 0:
-                # albumentations requires bboxes to be (x,y,w,h,class_idx)
-                augmentations = self.transform(image=img,
-                                               bboxes=np.roll(labels, axis=1, shift=4)
-                                               )
-                img = augmentations["image"]
-                # loss fx requires bboxes to be (class_idx,x,y,w,h)
-                labels = np.array(augmentations["bboxes"])
-                if len(labels):
-                    labels = np.roll(labels, axis=1, shift=1)
+            # albumentations requires bboxes to be (x,y,w,h,class_idx)
+            batch_n = idx // self.bs
+            if batch_n % 2 == 0:
+                self.transform[1].p = 1
+            else:
+                self.transform[1].p = 0
 
-        """plot_labes = xywhn2xyxy(labels[:, 1:], w=img.shape[1], h=img.shape[0])
-        fig, ax = plt.subplots(1)
-        ax.imshow(img)
-        for box in plot_labes:
-            rect = Rectangle(
-                (box[0], box[1]),
-                box[2] - box[0],
-                box[3] - box[1],
-                linewidth=2,
-                edgecolor="green",
-                facecolor="none"
-            )
-            # Add the patch to the Axes
-            ax.add_patch(rect)
+            augmentations = self.transform(image=img,
+                                           bboxes=np.roll(labels, axis=1, shift=4)
+                                           )
+            img = augmentations["image"]
+            # loss fx requires bboxes to be (class_idx,x,y,w,h)
+            labels = np.array(augmentations["bboxes"])
+            if len(labels):
+                labels = np.roll(labels, axis=1, shift=1)
 
-        plt.show()"""
+        """if len(labels):
+            plot_labes = xywhn2xyxy(labels[:, 1:], w=img.shape[1], h=img.shape[0])
+            fig, ax = plt.subplots(1)
+            ax.imshow(img)
+            for box in plot_labes:
+                rect = Rectangle(
+                    (box[0], box[1]),
+                    box[2] - box[0],
+                    box[3] - box[1],
+                    linewidth=2,
+                    edgecolor="green",
+                    facecolor="none"
+                )
+                # Add the patch to the Axes
+                ax.add_patch(rect)
+
+            plt.show()"""
+
         if self.ultralytics_loss:
             labels = torch.from_numpy(labels)
             out_bboxes = torch.zeros((labels.shape[0], 6))
@@ -234,7 +241,7 @@ class MS_COCO_2017_VALIDATION(Dataset):
         assert bboxes_format in ["coco", "yolo"], 'bboxes_format must be either "coco" or "yolo"'
 
         self.batch_range = 64 if bs < 64 else 128
-
+        self.bs = bs
         self.bboxes_format = bboxes_format
         self.nc = num_classes
         self.transform = transform
@@ -313,16 +320,22 @@ class MS_COCO_2017_VALIDATION(Dataset):
         img = resize_image(img, (int(tg_width), int(tg_height)))
 
         if self.transform:
-            if len(labels) > 0:
-                # albumentations requires bboxes to be (x,y,w,h,class_idx)
-                augmentations = self.transform(image=img,
-                                               bboxes=np.roll(labels, axis=1, shift=4)
+            # albumentations requires bboxes to be (x,y,w,h,class_idx)
+            batch_n = idx // self.bs
+            if batch_n % 2 == 0:
+                self.transform[2].p = 1
+            else:
+                self.transform[2].p = 0
+
+            augmentations = self.transform(image=img,
+                                           bboxes=np.roll(labels, axis=1, shift=4)
                                                )
-                img = augmentations["image"]
-                # loss fx requires bboxes to be (class_idx,x,y,w,h)
-                labels = np.array(augmentations["bboxes"])
-                if len(labels):
-                    labels = np.roll(labels, axis=1, shift=1)
+
+            img = augmentations["image"]
+            # loss fx requires bboxes to be (class_idx,x,y,w,h)
+            labels = np.array(augmentations["bboxes"])
+            if len(labels):
+                labels = np.roll(labels, axis=1, shift=1)
 
         classes = labels[:, 0].tolist() if len(labels) else []
         bboxes = labels[:, 1:] if len(labels) else []
@@ -482,6 +495,6 @@ if __name__ == "__main__":
         """boxes = cells_to_bboxes(y, anchors, S)[0]
         boxes = nms(boxes, iou_threshold=1, threshold=0.7, box_format="midpoint")"""
 
-        boxes = cells_to_bboxes(y, torch.tensor(anchors), S, list_output=False)
+        boxes = cells_to_bboxes(y, torch.tensor(anchors), S, to_list=False)
         boxes = non_max_suppression(boxes, iou_threshold=0.6, threshold=0.01, max_detections=300)
         plot_image(x[0].permute(1, 2, 0).to("cpu"), boxes[0])

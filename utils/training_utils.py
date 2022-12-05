@@ -5,9 +5,6 @@ import math
 from tqdm import tqdm
 import config
 from torch.utils.data import DataLoader
-
-import model
-from utils.bboxes_utils import rescale_bboxes
 from dataset import MS_COCO_2017, MS_COCO_2017_VALIDATION
 
 
@@ -65,7 +62,7 @@ def get_loaders(
         num_workers=num_workers,
         pin_memory=pin_memory,
         shuffle=shuffle,
-        collate_fn=train_ds.collate_fn_ultra if ultralytics_loss else train_ds.collate_fn
+        collate_fn=train_ds.collate_fn_ultra if ultralytics_loss else train_ds.collate_fn,
     )
 
     val_loader = DataLoader(
@@ -74,7 +71,7 @@ def get_loaders(
         num_workers=num_workers,
         pin_memory=pin_memory,
         shuffle=False,
-        collate_fn=None
+        collate_fn=None,
     )
 
     return train_loader, val_loader

@@ -45,27 +45,13 @@ ANCHORS = [
 TRAIN_TRANSFORMS = A.Compose(
     [
         A.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.0, p=0.4),
-        A.OneOf(
-            [
-             # when rotating an image, bboxes transformation ain't precise, you can either choose to
-             # create rotated bboxes slightly smaller with rotate_method="ellipse" or
-             # than gt_bboxes or quite wider with rotate_method="ellipse"largest_box"
-             A.ShiftScaleRotate(
-                rotate_limit=30, p=0.5, border_mode=cv2.BORDER_CONSTANT, rotate_method="ellipse",
-                scale_limit=0.0, shift_limit=0
-             ),
-             A.ShiftScaleRotate(
-                rotate_limit=30, p=0.5, border_mode=cv2.BORDER_CONSTANT, rotate_method="largest_box",
-                scale_limit=0.0, shift_limit=0)
-            ],
-            p=0.7
-        ),
-
+        A.Transpose(p=1),
         A.HorizontalFlip(p=0.5),
-        A.Blur(p=0.1),
+        A.VerticalFlip(p=0.5),
+        A.Rotate(limit=(-20, 20), p=0.7),
+        A.Blur(p=0.05),
         A.CLAHE(p=0.1),
         A.Posterize(p=0.1),
-        A.ToGray(p=0.1),
         A.ChannelShuffle(p=0.05),
     ],
     bbox_params=A.BboxParams("yolo", min_visibility=0.4, label_fields=[],),
@@ -158,3 +144,4 @@ COCO = [
     "hair drier",
     "toothbrush",
 ]
+
