@@ -16,7 +16,7 @@ def cells_to_bboxes(predictions, anchors, strides, is_pred=False, list_output=Tr
     for i in range(num_out_layers):
         bs, naxs, ny, nx, _ = predictions[i].shape
         stride = strides[i]
-        grid[i], anchor_grid[i] = make_grid(anchors, naxs, ny=ny, nx=nx, stride=stride, i=i)
+        grid[i], anchor_grid[i] = make_grids(anchors, naxs, ny=ny, nx=nx, stride=stride, i=i)
         if is_pred:
             # formula here: https://github.com/ultralytics/yolov5/issues/471
             #xy, wh, conf = predictions[i].sigmoid().split((2, 2, 80 + 1), 4)
@@ -50,6 +50,22 @@ def make_grid(anchors, naxs, stride, nx=20, ny=20, i=0):
     anchor_grid = (anchors[i] * stride).view((1, naxs, 1, 1, 2)).expand(shape)
 
     return grid, anchor_grid
+
+
+def make_grids(anchors, naxs, stride, nx=20, ny=20, i=0):
+
+    x_grid = torch.arange(nx)
+    x_grid = x_grid.repeat(ny).reshape(ny, nx)
+
+    y_grid = torch.arange(ny).unsqueeze(0)
+    y_grid = y_grid.T.repeat(1, nx).reshape(ny, nx)
+
+    xy_grid = torch.stack([x_grid, y_grid], dim=-1)
+    xy_grid = xy_grid.expand(1, naxs, ny, nx, 2)
+    anchor_grid = (anchors[i]*stride).reshape((1, naxs, 1, 1, 2)).expand(1, naxs, ny, nx, 2)
+
+    return xy_grid, anchor_grid
+
 
 
 def save_predictions(model, loader, folder, epoch, device, filename, num_images=10, labels=config.COCO):
