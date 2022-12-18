@@ -5,9 +5,8 @@ The scope of this repository is to facilitate the understanding of YOLOv5 and wa
 Instruction for use:
 <pre>
 <span class="pl-c1">cd</span>
-$ pip install requirements.txt
 <pre>$ git clone https://github.com/AlessandroMondin/YOLOV5m.git $
 $ <span class="pl-c1">cd</span> YOLOv5m/
-$ pip install requirements.txt</pre>
+$ pip install -r requirements.txt</pre>
 
 ![alt text](https://github.com/AlessandroMondin/computer_vision/blob/main/yolov5/doc_files/yolo_v5_architecture.png)
