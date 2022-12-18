@@ -67,7 +67,6 @@ def make_grids(anchors, naxs, stride, nx=20, ny=20, i=0):
     return xy_grid, anchor_grid
 
 
-
 def save_predictions(model, loader, folder, epoch, device, filename, num_images=10, labels=config.COCO):
 
     print("=> Saving images predictions...")

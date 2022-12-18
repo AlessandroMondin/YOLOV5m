@@ -141,73 +141,40 @@ class C3_NECK(nn.Module):
 
 
 class HEADS(nn.Module):
-    stride = None  # strides computed during build
-
-    def __init__(self, nc=80, anchors=(), ch=(), inference=False):  # detection layer
+    def __init__(self, nc=80, anchors=(), ch=()):  # detection layer
         super(HEADS, self).__init__()
         self.nc = nc  # number of classes
-        self.no = nc + 5  # number of outputs per anchor
         self.nl = len(anchors)  # number of detection layers
-        self.na = len(anchors[0]) * self.nl  # number of anchors
         self.naxs = len(anchors[0])
-        self.grid = [torch.empty(1)] * self.nl  # init grid
-        self.anchor_grid = [torch.empty(1)] * self.nl  # init anchor grid
 
         # https://pytorch.org/docs/stable/generated/torch.nn.Module.html command+f register_buffer
         # has the same result as self.anchors = anchors but, it's a way to register a buffer (make
         # a variable available in runtime) that should not be considered a model parameter
         self.stride = [8, 16, 32]
+
+        # anchors are divided by the stride (anchors_for_head_1/8, anchors_for_head_1/16 etc.)
         anchors_ = torch.tensor(anchors).float().view(self.nl, -1, 2) / torch.tensor(self.stride).repeat(6, 1).T.reshape(3, 3, 2)
         self.register_buffer('anchors', anchors_)  # shape(nl,na,2)
 
-        self.m = nn.ModuleList(nn.Conv2d(x, self.no * self.naxs, 1) for x in ch)  # output conv
-        self.inference = inference
+        self.out_convs = nn.ModuleList()
+        for in_channels in ch:
+            self.out_convs += [
+                nn.Conv2d(in_channels=in_channels, out_channels=(5+self.nc) * self.naxs, kernel_size=1)
+            ]
 
     def forward(self, x):
-        z = []  # inference output
         for i in range(self.nl):
-            # doing it inplace to save memory
-            x[i] = self.m[i](x[i])  # conv
-            bs, _, ny, nx = x[i].shape  # x(bs,255,20,20) to x(bs,3,20,20,85)
-            # according to https://stackoverflow.com/questions/49643225/whats-the-difference-between-reshape-and-view-in-pytorch
-            # view by returns a tensor with a new shape that share the underlying data with the original tensor. In
-            # order not to throw an error however we should use .countiguous()
-            # to recap, view().contiguous() has the same purpose of reshape but it's more efficient in terms of memory.
-            x[i] = x[i].view(bs, self.naxs, self.no, ny, nx).permute(0, 1, 3, 4, 2).contiguous()
+            # performs out_convolution and stores the result in place
+            x[i] = self.out_convs[i](x[i])
 
-            if self.inference:  # inference
-                if self.grid[i].shape[2:4] != x[i].shape[2:4]:
-                    self.grid[i], self.anchor_grid[i] = self._make_grid(nx, ny, i)
-                # check anchor's h,w,x,y formula here below:
-                # https://user-images.githubusercontent.com/7379039/88087523-0d108080-cb57-11ea-9943-fc00441c4582.png
-                y = x[i].sigmoid()
-                # (y[..., 0:2] * 2).shape == (bs, na/ch?, h, w, ch?)
-                # self.grid[i].shape = (1, na, h, w, ch?)
-                # self.grid[i] values?!
-                # self.stride[i] --> int
-                y[..., 0:2] = (y[..., 0:2] * 2 + self.grid[i]) * self.stride[i]  # xy
-                # self.anchor_grid[i].shape = (1, na, h, w, ch)
-                y[..., 2:4] = (y[..., 2:4] * 2) ** 2 * self.anchor_grid[i]  # wh
+            bs, _, grid_y, grid_x = x[i].shape
+            # reshaping output to be (bs, n_scale_predictions, n_grid_y, n_grid_x, 5 + num_classes)
+            # why .permute? Here https://github.com/ultralytics/yolov5/issues/10524#issuecomment-1356822063
+            x[i] = x[i].view(bs, self.naxs, (5+self.nc), grid_y, grid_x).permute(0, 1, 3, 4, 2).contiguous()
 
-                z.append(y.view(bs, -1, self.no))
-
-        return (torch.cat(z, 1), x) if self.inference else x
-
-    def _make_grid(self, nx=20, ny=20, i=0):
-        d = self.anchors[i].device
-        t = self.anchors[i].dtype
-        shape = 1, self.naxs, ny, nx, 2  # grid shape
-        y, x = torch.arange(ny, device=d, dtype=t), torch.arange(nx, device=d, dtype=t)
-        # if nx = ny --> yv equals to xv transposed
-        yv, xv = torch.meshgrid(y, x, indexing="ij")
-        # n.b torch.stack((xv, yv), 2).expand(shape).shape == shape
-        # to understand expand --> torch.equal(grid[:,1],grid[:,0])
-        grid = torch.stack((xv, yv), 2).expand(shape) - 0.5  # add grid offset, i.e. y = 2.0 * x - 0.5
-        anchor_grid = self.anchors[i].view((1, self.naxs, 1, 1, 2)).expand(shape)
-        return grid, anchor_grid
+        return x
 
 
-# todos: drop resize class
 class YOLOV5m(nn.Module):
     def __init__(self, first_out, nc=80, anchors=(),
                  ch=(), inference=False):
@@ -238,7 +205,7 @@ class YOLOV5m(nn.Module):
             CBL(in_channels=first_out*8, out_channels=first_out*8, kernel_size=3, stride=2, padding=1),
             C3(in_channels=first_out*16, out_channels=first_out*16, width_multiple=0.5, depth=2, backbone=False)
         ]
-        self.head = HEADS(nc=nc, anchors=anchors, ch=ch, inference=self.inference)
+        self.head = HEADS(nc=nc, anchors=anchors, ch=ch)
 
     def forward(self, x):
         assert x.shape[2] % 32 == 0 and x.shape[3] % 32 == 0, "Width and Height aren't divisible by 32!"
@@ -288,16 +255,11 @@ if __name__ == "__main__":
     out = model(x)
     end = time.time()
 
-    if not model.inference:
-        assert out[0].shape == (batch_size, 3, image_height//8, image_width//8, nc + 5)
-        assert out[1].shape == (batch_size, 3, image_height//16, image_width//16, nc + 5)
-        assert out[2].shape == (batch_size, 3, image_height//32, image_width//32, nc + 5)
+    assert out[0].shape == (batch_size, 3, image_height//8, image_width//8, nc + 5)
+    assert out[1].shape == (batch_size, 3, image_height//16, image_width//16, nc + 5)
+    assert out[2].shape == (batch_size, 3, image_height//32, image_width//32, nc + 5)
 
-        print("Success!")
-
-    else:
-        print(out[0].shape)
-
+    print("Success!")
     print("feedforward took {:.2f} seconds".format(end - start))
 
     """count_parameters(model)

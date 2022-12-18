@@ -16,9 +16,9 @@ if __name__ == "__main__":
     anchors = config.ANCHORS
     first_out = 48
     S = [8, 16, 32]
-
-    """model = YOLOV5m(first_out=first_out, nc=nc, anchors=anchors,
-                    ch=(first_out*4, first_out*8, first_out*16), inference=False)
+    """
+    model = YOLOV5m(first_out=first_out, nc=nc, anchors=anchors,
+                    ch=(first_out*4, first_out*8, first_out*16))
 
     pretrained_weights = torch.load("yolov5m_real.pt")
 
@@ -81,10 +81,10 @@ if __name__ == "__main__":
 
     state_dict_no_heads = OrderedDict(no_heads)
 
-    torch.save(state_dict_no_heads, "../yolov5m_coco_cp.pt.pt")"""
-
+    torch.save(state_dict_no_heads, "../yolov5m_coco_cp.pt.pt")
+    """
     model = YOLOV5m(first_out=first_out, nc=80, anchors=anchors,
-                    ch=(first_out * 4, first_out * 8, first_out * 16), inference=False)
+                    ch=(first_out * 4, first_out * 8, first_out * 16))
 
     model.load_state_dict(state_dict=torch.load("../yolov5m_coco.pt"), strict=True)
     model.eval()
