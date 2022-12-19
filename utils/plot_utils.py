@@ -39,19 +39,6 @@ def cells_to_bboxes(predictions, anchors, strides, is_pred=False, list_output=Tr
 
     return torch.cat(all_bboxes, dim=1).tolist() if list_output else torch.cat(all_bboxes, dim=1)
 
-
-def make_grid(anchors, naxs, stride, nx=20, ny=20, i=0):
-    d = anchors[i].device
-    t = anchors[i].dtype
-    shape = 1, naxs, ny, nx, 2  # grid shape
-    y, x = torch.arange(ny, device=d, dtype=t), torch.arange(nx, device=d, dtype=t)
-    yv, xv = torch.meshgrid(y, x, indexing='ij')
-    grid = torch.stack((xv, yv), 2).expand(shape)  # add grid offset, i.e. y = 2.0 * x - 0.5
-    anchor_grid = (anchors[i] * stride).view((1, naxs, 1, 1, 2)).expand(shape)
-
-    return grid, anchor_grid
-
-
 def make_grids(anchors, naxs, stride, nx=20, ny=20, i=0):
 
     x_grid = torch.arange(nx)

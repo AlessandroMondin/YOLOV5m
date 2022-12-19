@@ -73,9 +73,7 @@ class YOLO_LOSS:
         t1 = torch.stack([target[0] for target in targets], dim=0).to(config.DEVICE,non_blocking=True)
         t2 = torch.stack([target[1] for target in targets], dim=0).to(config.DEVICE,non_blocking=True)
         t3 = torch.stack([target[2] for target in targets], dim=0).to(config.DEVICE,non_blocking=True)
-        
-        
-                          
+
         if self.save_logs:
             l1, logs1 = self.compute_loss(preds[0], t1, anchors=self.anchors_d[0], balance=self.balance[0])
             l2, logs2 = self.compute_loss(preds[1], t2, anchors=self.anchors_d[1], balance=self.balance[1])
@@ -118,12 +116,6 @@ class YOLO_LOSS:
         classes = bboxes[:, 0].tolist() if len(bboxes) else []
         bboxes = bboxes[:, 1:] if len(bboxes) else []
 
-        """if not self.rect_training:
-            if check_loss:
-                bboxes = rescale_bboxes(bboxes, starting_size=(640, 640), ending_size=(pw, ph))
-            else:
-                bboxes = rescale_bboxes(bboxes, starting_size=(640, 640), ending_size=(pw, ph))"""
-
         for idx, box in enumerate(bboxes):
 
             iou_anchors = iou_width_height(torch.from_numpy(box[2:4]), self.anchors)
@@ -165,7 +157,7 @@ class YOLO_LOSS:
                 # 0 is the idx corresponding to p_o
                 # I guess [anchor_on_scale, i, j, 0] equals to [anchor_on_scale][i][j][0]
                 # check that the anchor hasn't been already taken by another object (rare)
-                anchor_taken = targets[scale_idx][anchor_on_scale, i, j, 0]
+                anchor_taken = targets[scale_idx][anchor_on_scale, i, j, 4]
                 # if not anchor_taken == if anchor_taken is still == 0 cause in the following
                 # lines will be set to one
                 # if not has_anchor[scale_idx] --> if this scale has not been already taken

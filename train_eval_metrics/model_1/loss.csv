@@ -1,2 +1,1 @@
 epoch,batch_idx,box_loss,object_loss,class_loss
-1,0,0.04318462312221527,1.3207043409347534,0.3636355400085449

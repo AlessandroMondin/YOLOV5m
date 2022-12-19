@@ -390,7 +390,7 @@ class MS_COCO_2017_VALIDATION(Dataset):
                 # 0 is the idx corresponding to p_o
                 # I guess [anchor_on_scale, i, j, 0] equals to [anchor_on_scale][i][j][0]
                 # check that the anchor hasn't been already taken by another object (rare)
-                anchor_taken = targets[scale_idx][anchor_on_scale, i, j, 0]
+                anchor_taken = targets[scale_idx][anchor_on_scale, i, j, 4]
                 # if not anchor_taken == if anchor_taken is still == 0 cause in the following
                 # lines will be set to one
                 # if not has_anchor[scale_idx] --> if this scale has not been already taken
