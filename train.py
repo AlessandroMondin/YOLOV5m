@@ -40,16 +40,15 @@ def main(opt):
     
     ROOT_DIR = os.path.join(parent_dir, "datasets", opt.data)
 
-    try:
+    if os.path.isfile(os.path.join(ROOT_DIR, "data.yaml")):
         with open(os.path.join(ROOT_DIR, "data.yaml"), "r") as f:
             data = yaml.load(f, Loader=yaml.FullLoader)
             nc = data["nc"]
             labels = data["names"]
 
-    except FileNotFoundError:
-        assert (
-            config.nc is not None and config.labels is not None
-        )
+    else:
+        assert config.nc is not None and config.labels is not None, "set in config.py nc=num_classes and config.labels='your labels'"
+
         nc = config.nc
         labels = config.labels
 
