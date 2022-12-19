@@ -14,7 +14,8 @@ The sources I used while implementating are Ultralytics <a href="https://github.
 After loading Ultralytics COCO weights in my architecture, I've fine-tuned it on <a href="https://universe.roboflow.com/thermal-imaging-0hwfw/flir-data-set/dataset/14">FLIR dataset<a/> for ~15 epoch and it reached ~0.82 i MAP50
 
 
+<img src="https://github.com/AlessandroMondin/computer_vision/blob/main/yolov5/doc_files/yolo_v5_architecture.png" 
+     width="400" 
+     height="500" />
 
 
-
-![alt text](https://github.com/AlessandroMondin/computer_vision/blob/main/yolov5/doc_files/yolo_v5_architecture.png)
