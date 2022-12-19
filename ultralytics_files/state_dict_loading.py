@@ -16,14 +16,14 @@ if __name__ == "__main__":
     anchors = config.ANCHORS
     first_out = 48
     S = [8, 16, 32]
-    """
+
     model = YOLOV5m(first_out=first_out, nc=nc, anchors=anchors,
                     ch=(first_out*4, first_out*8, first_out*16))
 
-    pretrained_weights = torch.load("yolov5m_real.pt")
+    pretrained_weights = torch.load("ultralytics_yolov5m.pt")
 
     pt_values = pretrained_weights.values()
-
+    """
     # Manually loading ultralytics weights in my architecture
     state_dict = model.state_dict()
     layers_loaded = []
@@ -48,8 +48,8 @@ if __name__ == "__main__":
             equal_layers += 1
 
     # print(equal_layers)
-    torch.save(state_dict, "../yolov5m_coco.pt")
-    model.load_state_dict(torch.load("../yolov5m_coco.pt"))
+    torch.save(state_dict, "../yolov5m.pt")
+    model.load_state_dict(torch.load("../yolov5m.pt"))
 
     state_dict = model.state_dict()
     car_person_heads = []
@@ -70,7 +70,7 @@ if __name__ == "__main__":
             car_person_heads.append([key, vals])
 
     state_dict_cp = OrderedDict(car_person_heads)
-    torch.save(OrderedDict(car_person_heads), "../yolov5m_coco_cp.pt")
+    torch.save(OrderedDict(car_person_heads), "../yolov5m_nh.pt")
 
     no_heads = []
     for key, vals in state_dict.items():
@@ -81,12 +81,12 @@ if __name__ == "__main__":
 
     state_dict_no_heads = OrderedDict(no_heads)
 
-    torch.save(state_dict_no_heads, "../yolov5m_coco_cp.pt.pt")
+    torch.save(state_dict_no_heads, "../yolov5m_nh.pt")
     """
     model = YOLOV5m(first_out=first_out, nc=80, anchors=anchors,
                     ch=(first_out * 4, first_out * 8, first_out * 16))
 
-    model.load_state_dict(state_dict=torch.load("../yolov5m_coco.pt"), strict=True)
+    model.load_state_dict(state_dict=torch.load("../yolov5m.pt"), strict=True)
     model.eval()
 
     img = np.array(Image.open("test_images/zidane.jpg").convert("RGB"))

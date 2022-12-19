@@ -79,30 +79,3 @@ for idx, annot in enumerate(loop):
                     fp.write(str(box).strip("[]").replace(",", "") + "\n")
             fp.close()
 """
-
-# widths = []
-# heights = []
-
-# here the intuition:
-# in the YOLOV5 repo they used nearest interpolation also to increase the size of images.
-# IMO this could lead to some distortions, hence I am trying to use interpolation just
-# to randomly decrease their value if they are large enough (in my case
-# w.r.t. the 75% percentile)
-
-# print("width mean before multi_shape: {:.2f}".format(sum(widths)/len(widths)))
-# print("height mean before multi_shape: {:.2f}".format(sum(heights)/len(heights)))
-# percentile_75_w = np.percentile(widths, 75)
-# percentile_75_h = np.percentile(heights, 75)
-
-# wh = []
-# for ann in annot:
-#    t = (ann["height"], ann["width"])
-#    h, w = my_interpolation(t)
-#    wh.append((h, w))
-
-# widths = [i[1] for i in wh]
-# heights = [i[0] for i in wh]
-
-# print("width mean post multi_shape: {:.2f}".format(sum(widths)/len(widths)))
-# print("height mean post multi_shape: {:.2f}".format(sum(heights)/len(heights)))
-# print(Counter(wh))"""

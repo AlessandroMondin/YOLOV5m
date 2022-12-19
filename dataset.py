@@ -7,8 +7,8 @@ import imagesize
 import pandas as pd
 from PIL import Image
 from torch.utils.data import Dataset, DataLoader
-from utils.utils import resize_image, xywhn2xyxy
-from utils.bboxes_utils import rescale_bboxes, iou_width_height, coco_to_yolo_tensors, non_max_suppression
+from utils.utils import resize_image
+from utils.bboxes_utils import iou_width_height, coco_to_yolo_tensors, non_max_suppression
 from utils.plot_utils import plot_image, cells_to_bboxes
 import config
 
