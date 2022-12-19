@@ -1,6 +1,6 @@
 ## A personal implementation of YOLOv5(m)
 
-The scope of this repository is to facilitate the understanding of YOLOv5 and was a great opportunity to improve my knowledge as well. The sources I used while implementating are Ultralytics <a href="https://github.com/ultralytics/yolov5" target="_blank">YOLOv5</a> for the architecture details and Aladdin Persson <a href="https://github.com/aladdinpersson/Machine-Learning-Collection/tree/master/ML/Pytorch/object_detection/YOLOv3" target="_blank">YOLOv3</a> for training-pipeline design.
+The scope of this repository is to facilitate the understanding of YOLOv5 and was a great opportunity to improve my knowledge as well. The sources I used while implementating are Ultralytics <a href="https://github.com/ultralytics/yolov5" target="_blank">YOLOv5</a> for architecture details and Aladdin Persson <a href="https://github.com/aladdinpersson/Machine-Learning-Collection/tree/master/ML/Pytorch/object_detection/YOLOv3" target="_blank">YOLOv3</a> for the training-pipeline design.
 
 Instruction for use:
 <pre>
