@@ -15,7 +15,8 @@ After loading Ultralytics COCO weights in my architecture, I've fine-tuned it on
 
 
 <img src="https://github.com/AlessandroMondin/computer_vision/blob/main/yolov5/doc_files/yolo_v5_architecture.png" 
-     width="400" 
-     height="500" />
+     width="800" 
+     height="800"
+     class="center"/>
 
 
