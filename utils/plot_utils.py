@@ -7,7 +7,7 @@ import torch
 from utils.bboxes_utils import non_max_suppression as nms
 
 
-def cells_to_bboxes(predictions, anchors, strides, is_pred=False, list_output=True):
+def cells_to_bboxes(predictions, anchors, strides, is_pred=False, to_list=True):
     num_out_layers = len(predictions)
     grid = [torch.empty(0) for _ in range(num_out_layers)]  # initialize
     anchor_grid = [torch.empty(0) for _ in range(num_out_layers)]  # initialize
@@ -37,7 +37,7 @@ def cells_to_bboxes(predictions, anchors, strides, is_pred=False, list_output=Tr
 
         all_bboxes.append(scale_bboxes)
 
-    return torch.cat(all_bboxes, dim=1).tolist() if list_output else torch.cat(all_bboxes, dim=1)
+    return torch.cat(all_bboxes, dim=1).tolist() if to_list else torch.cat(all_bboxes, dim=1)
 
 def make_grids(anchors, naxs, stride, nx=20, ny=20, i=0):
 

@@ -17,10 +17,8 @@ from matplotlib.patches import Rectangle
 
 
 class Training_Dataset(Dataset):
-    """COCO 2017 dataset constructed using the PyTorch built-in functionalities"""
 
     def __init__(self,
-                 num_classes,
                  root_directory=config.ROOT_DIR,
                  transform=None,
                  train=True,
@@ -30,12 +28,7 @@ class Training_Dataset(Dataset):
                  bboxes_format="coco",
                  ultralytics_loss=False,
                  ):
-        """
-        Parameters:
-            train (bool): if true the os.path.join will lead to the train set, otherwise to the val set
-            root_directory (path): path to the COCO2017 dataset
-            transform: set of Albumentations transformations to be performed with A.Compose
-        """
+
         assert bboxes_format in ["coco", "yolo"], 'bboxes_format must be either "coco" or "yolo"'
         self.bs = bs
         self.batch_range = 64 if bs < 64 else 128
@@ -43,7 +36,6 @@ class Training_Dataset(Dataset):
         self.bboxes_format = bboxes_format
         self.ultralytics_loss = ultralytics_loss
         self.root_directory = root_directory
-        self.nc = num_classes
         self.transform = transform
         self.rect_training = rect_training
         self.default_size = default_size
@@ -221,7 +213,6 @@ class Validation_Dataset(Dataset):
     """COCO 2017 dataset constructed using the PyTorch built-in functionalities"""
 
     def __init__(self,
-                 num_classes,
                  anchors,
                  root_directory=config.ROOT_DIR,
                  transform=None,
@@ -243,7 +234,6 @@ class Validation_Dataset(Dataset):
         self.batch_range = 64 if bs < 64 else 128
         self.bs = bs
         self.bboxes_format = bboxes_format
-        self.nc = num_classes
         self.transform = transform
         self.S = S
         self.nl = len(anchors[0])
@@ -482,7 +472,7 @@ if __name__ == "__main__":
 
     anchors = config.ANCHORS
 
-    dataset = Validation_Dataset(num_classes=len(config.COCO), anchors=config.ANCHORS,
+    dataset = Validation_Dataset(anchors=config.ANCHORS,
                                  root_directory=config.ROOT_DIR, transform=None,
                                  train=False, S=S, rect_training=True, default_size=640, bs=4,
                                  bboxes_format="coco")

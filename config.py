@@ -139,3 +139,6 @@ COCO = [
     "hair drier",
     "toothbrush",
 ]
+
+nc = len(COCO)
+labels = COCO

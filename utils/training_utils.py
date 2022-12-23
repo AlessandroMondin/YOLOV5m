@@ -45,11 +45,11 @@ def get_loaders(
     val_augmentation = None
 
     # bs here is not batch_size, check class method "adaptive_shape" to check behavior
-    train_ds = Training_Dataset(num_classes=num_classes, root_directory=db_root_dir,
+    train_ds = Training_Dataset(root_directory=db_root_dir,
                                 transform=train_augmentation, train=True, rect_training=rect_training,
                                 bs=batch_size, bboxes_format=box_format, ultralytics_loss=ultralytics_loss)
 
-    val_ds = Validation_Dataset(num_classes=num_classes, anchors=config.ANCHORS,
+    val_ds = Validation_Dataset(anchors=config.ANCHORS,
                                 root_directory=db_root_dir, transform=val_augmentation,
                                 train=False, S=S, rect_training=rect_training, bs=batch_size,
                                 bboxes_format=box_format)
