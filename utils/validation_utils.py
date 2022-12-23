@@ -98,10 +98,10 @@ class YOLO_EVAL:
             with torch.no_grad():
                 predictions = model(images)
 
-            pred_boxes = cells_to_bboxes(predictions, anchors, strides=model.head.stride, is_pred=True, list_output=False)
+            pred_boxes = cells_to_bboxes(predictions, anchors, strides=model.head.stride, is_pred=True, to_list=False)
 
             # we just want one bbox for each label, not one for each scale
-            true_boxes = cells_to_bboxes(labels, anchors, strides=model.head.stride, is_pred=False, list_output=False)
+            true_boxes = cells_to_bboxes(labels, anchors, strides=model.head.stride, is_pred=False, to_list=False)
 
             pred_boxes = non_max_suppression(pred_boxes, iou_threshold=self.nms_iou_thresh, threshold=self.conf_threshold,
                                              tolist=False, max_detections=300)
