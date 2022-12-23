@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 
 
-class MS_COCO_2017(Dataset):
+class Training_Dataset(Dataset):
     """COCO 2017 dataset constructed using the PyTorch built-in functionalities"""
 
     def __init__(self,
@@ -217,7 +217,7 @@ class MS_COCO_2017(Dataset):
         return torch.stack(im, 0), torch.cat(label, 0)
 
 
-class MS_COCO_2017_VALIDATION(Dataset):
+class Validation_Dataset(Dataset):
     """COCO 2017 dataset constructed using the PyTorch built-in functionalities"""
 
     def __init__(self,
@@ -482,10 +482,10 @@ if __name__ == "__main__":
 
     anchors = config.ANCHORS
 
-    dataset = MS_COCO_2017_VALIDATION(num_classes=len(config.COCO), anchors=config.ANCHORS,
-                                      root_directory=config.ROOT_DIR, transform=None,
-                                      train=False, S=S, rect_training=True, default_size=640, bs=4,
-                                      bboxes_format="coco")
+    dataset = Validation_Dataset(num_classes=len(config.COCO), anchors=config.ANCHORS,
+                                 root_directory=config.ROOT_DIR, transform=None,
+                                 train=False, S=S, rect_training=True, default_size=640, bs=4,
+                                 bboxes_format="coco")
 
     # anchors = torch.tensor(anchors)
     loader = DataLoader(dataset=dataset, batch_size=8, shuffle=False)

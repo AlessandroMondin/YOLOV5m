@@ -5,7 +5,7 @@ import math
 from tqdm import tqdm
 import config
 from torch.utils.data import DataLoader
-from dataset import MS_COCO_2017, MS_COCO_2017_VALIDATION
+from dataset import Training_Dataset, Validation_Dataset
 
 
 def multi_scale(img, target_shape, max_stride):
@@ -45,14 +45,14 @@ def get_loaders(
     val_augmentation = None
 
     # bs here is not batch_size, check class method "adaptive_shape" to check behavior
-    train_ds = MS_COCO_2017(num_classes=num_classes, root_directory=db_root_dir,
-                            transform=train_augmentation, train=True, rect_training=rect_training,
-                            bs=batch_size, bboxes_format=box_format, ultralytics_loss=ultralytics_loss)
+    train_ds = Training_Dataset(num_classes=num_classes, root_directory=db_root_dir,
+                                transform=train_augmentation, train=True, rect_training=rect_training,
+                                bs=batch_size, bboxes_format=box_format, ultralytics_loss=ultralytics_loss)
 
-    val_ds = MS_COCO_2017_VALIDATION(num_classes=num_classes, anchors=config.ANCHORS,
-                                     root_directory=db_root_dir, transform=val_augmentation,
-                                     train=False, S=S, rect_training=rect_training, bs=batch_size,
-                                     bboxes_format=box_format)
+    val_ds = Validation_Dataset(num_classes=num_classes, anchors=config.ANCHORS,
+                                root_directory=db_root_dir, transform=val_augmentation,
+                                train=False, S=S, rect_training=rect_training, bs=batch_size,
+                                bboxes_format=box_format)
 
     shuffle = False if rect_training else True
 

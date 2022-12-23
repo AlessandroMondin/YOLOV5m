@@ -89,15 +89,14 @@ if __name__ == "__main__":
     model.load_state_dict(state_dict=torch.load("../yolov5m.pt"), strict=True)
     model.eval()
 
-    img = np.array(Image.open("test_images/zidane.jpg").convert("RGB"))
+    img = np.array(Image.open("test_images/hollywood.jpg").convert("RGB"))
     img = transforms.ToTensor()(img)
     if len(img.shape) == 3:
         img = img[None]  # expand for batch dim
-    tg_size = (384, 640)
+    tg_size = (480, 736)
     img = transforms.Resize(tg_size, interpolation=transforms.InterpolationMode.NEAREST)(img)
     with torch.no_grad():
         out = model(img)
-
     boxes = cells_to_bboxes(out, model.head.anchors, S, list_output=False, is_pred=True)
     boxes = non_max_suppression(boxes, iou_threshold=0.6, threshold=.25, max_detections=300)
     plot_image(img[0].permute(1, 2, 0).to("cpu"), boxes[0])

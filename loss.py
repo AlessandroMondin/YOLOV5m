@@ -13,7 +13,7 @@ from utils.bboxes_utils import (
 from utils.plot_utils import cells_to_bboxes, plot_image
 import config
 from model import YOLOV5m
-from dataset import MS_COCO_2017
+from dataset import Training_Dataset
 import torch.nn.functional as F
 
 
@@ -38,7 +38,6 @@ class YOLO_LOSS:
         self.nc = model.head.nc
         self.anchors_d = model.head.anchors.clone().detach()
         self.anchors = model.head.anchors.clone().detach().to("cpu")
-        
 
         self.na = self.anchors.reshape(9,2).shape[0]
         self.num_anchors_per_scale = self.na // 3
@@ -260,9 +259,9 @@ if __name__ == "__main__":
     model = YOLOV5m(first_out=first_out, nc=len(config.COCO), anchors=anchors,
                     ch=(first_out*4, first_out*8, first_out*16), inference=False).to(config.DEVICE)
 
-    model.load_state_dict(state_dict=torch.load("yolov5m_coco.pt"), strict=True)
+    model.load_state_dict(state_dict=torch.load("yolov5m.pt"), strict=True)
 
-    dataset = MS_COCO_2017(num_classes=len(config.COCO),
+    dataset = Training_Dataset(num_classes=len(config.COCO),
                            root_directory=config.ROOT_DIR, transform=config.TRAIN_TRANSFORMS,
                            train=True, rect_training=True, default_size=640, bs=4, bboxes_format="coco")
 

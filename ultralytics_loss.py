@@ -9,7 +9,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 
 from utils.bboxes_utils import intersection_over_union
-from dataset import MS_COCO_2017
+from dataset import Training_Dataset
 import config
 from model import YOLOV5m
 
@@ -333,7 +333,7 @@ if __name__ == "__main__":
                                   train=True, S=S, rect_training=True, default_size=640, bs=4,
                                   bboxes_format="coco")"""
 
-    dataset = MS_COCO_2017(num_classes=nc, root_directory=config.ROOT_DIR, transform=None,
+    dataset = Training_Dataset(num_classes=nc, root_directory=config.ROOT_DIR, transform=None,
                            train=True, rect_training=True, default_size=640, bs=8,
                            bboxes_format="coco", ultralytics_loss=True)
 

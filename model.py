@@ -5,7 +5,7 @@ import torch.nn as nn
 from torchvision.transforms import Resize
 from torchvision.transforms import InterpolationMode
 import config
-#from utils.utils import check_size, count_parameters
+from utils.utils import check_size, count_parameters
 
 
 # performs a convolution, a batch_norm and then applies a SiLU activation function

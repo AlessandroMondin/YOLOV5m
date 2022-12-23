@@ -5,7 +5,6 @@ import torch
 from tqdm import tqdm
 from utils.bboxes_utils import non_max_suppression
 from torchmetrics.detection.mean_ap import MeanAveragePrecision
-
 from utils.plot_utils import cells_to_bboxes
 
 

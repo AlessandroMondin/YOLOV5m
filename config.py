@@ -1,10 +1,7 @@
 import os
 from pathlib import Path
-import numpy as np
 import albumentations as A
 import torch.cuda
-from albumentations.pytorch import ToTensorV2
-import cv2
 
 parent_dir = Path(__file__).parent.parent
 ROOT_DIR = os.path.join(parent_dir, "datasets", "coco")
@@ -17,10 +14,8 @@ labels = None
 
 FIRST_OUT = 48
 
-
 CLS_PW = 1.0
 OBJ_PW = 1.0
-
 
 LEARNING_RATE = 5e-4
 WEIGHT_DECAY = 5e-4
@@ -144,4 +139,3 @@ COCO = [
     "hair drier",
     "toothbrush",
 ]
-
