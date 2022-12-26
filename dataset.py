@@ -184,12 +184,12 @@ class Training_Dataset(Dataset):
                     bs = self.batch_range
                 else:
                     bs = len(annotations) - i
-                for idx in range(bs):
-                    annotations.iloc[i + idx, 2] = size[0]
-                    annotations.iloc[i + idx, 1] = size[1]
+
+                annotations.iloc[i:bs, 2] = size[0]
+                annotations.iloc[i:bs, 1] = size[1]
 
                 # sample annotation to avoid having pseudo-equal images in the same batch
-                annotations.iloc[i:idx, :] = annotations.iloc[i:idx, :].sample(frac=1, axis=0)
+                annotations.iloc[i:i+bs, :] = annotations.iloc[i:i+bs, :].sample(frac=1, axis=0)
 
             parsed_annot = pd.DataFrame(annotations.iloc[:,:3])
             parsed_annot.to_csv(path)
@@ -449,14 +449,14 @@ class Validation_Dataset(Dataset):
                     bs = self.batch_range
                 else:
                     bs = len(annotations) - i
-                for idx in range(bs):
-                    annotations.iloc[i + idx, 2] = size[0]
-                    annotations.iloc[i + idx, 1] = size[1]
+
+                annotations.iloc[i:bs, 2] = size[0]
+                annotations.iloc[i:bs, 1] = size[1]
 
                 # sample annotation to avoid having pseudo-equal images in the same batch
-                annotations.iloc[i:idx, :] = annotations.iloc[i:idx, :].sample(frac=1, axis=0)
+                annotations.iloc[i:i+bs, :] = annotations.iloc[i:i+bs, :].sample(frac=1, axis=0)
 
-            parsed_annot = pd.DataFrame(annotations.iloc[:,:3])
+            parsed_annot = pd.DataFrame(annotations.iloc[:, :3])
             parsed_annot.to_csv(path)
 
         return parsed_annot
