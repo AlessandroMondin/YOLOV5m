@@ -10,6 +10,7 @@ The sources I used while implementating are Ultralytics <a href="https://github.
     pip install -r requirements.txt
 
 To run experiments, your datasets need to comply with the below tree structure and the corresponing folder names. <br> 
+'''bash
 yolov5m (this repo)
 datasets
 └── YOUR_DATASET
@@ -19,6 +20,6 @@ datasets
     └── labels
         ├── train
         └── val <br> 
-
+'''
 
 After loading Ultralytics COCO weights in my architecture, I've fine-tuned it on <a href="https://universe.roboflow.com/thermal-imaging-0hwfw/flir-data-set/dataset/14">FLIR dataset<a/> for ~15 epoch and it reached ~0.82 i MAP50
