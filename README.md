@@ -12,7 +12,7 @@ The sources I used while implementating are Ultralytics <a href="https://github.
 To run experiments, your datasets need to comply with the below tree structure and the corresponing folder names. <br> 
 
 <pre>
-yolov5m
+yolov5m (this repository)
 datasets
 └── YOUR_DATASET
     ├── images
