@@ -23,4 +23,6 @@ datasets
         └── val
 </pre>
 
-After loading Ultralytics COCO weights in my architecture, I've fine-tuned it on <a href="https://universe.roboflow.com/thermal-imaging-0hwfw/flir-data-set/dataset/14">FLIR dataset<a/> for ~15 epoch and it reached ~0.82 of MAP50
+After loading Ultralytics COCO weights in my architecture, I've fine-tuned it on <a href="https://universe.roboflow.com/thermal-imaging-0hwfw/flir-data-set/dataset/14">FLIR dataset<a/> for ~15 epoch and it reached ~0.82 of MAP50 <br><br>
+
+![flir detection](https://github.com/AlessandroMondin/YOLOV5m/blob/main/detection.png)
