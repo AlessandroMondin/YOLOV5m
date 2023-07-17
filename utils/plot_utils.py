@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.patches as patches
 import torch
 from utils.bboxes_utils import non_max_suppression as nms
-
+import torchvision
 
 def cells_to_bboxes(predictions, anchors, strides, is_pred=False, to_list=True):
     num_out_layers = len(predictions)
@@ -16,7 +16,7 @@ def cells_to_bboxes(predictions, anchors, strides, is_pred=False, to_list=True):
     for i in range(num_out_layers):
         bs, naxs, ny, nx, _ = predictions[i].shape
         stride = strides[i]
-        grid[i], anchor_grid[i] = make_grids(anchors, naxs, ny=ny, nx=nx, stride=stride, i=i)
+        grid[i], anchor_grid[i] = torchvision.utils.make_grid(anchors, naxs, ny=ny, nx=nx, stride=stride, i=i)
         if is_pred:
             # formula here: https://github.com/ultralytics/yolov5/issues/471
             #xy, wh, conf = predictions[i].sigmoid().split((2, 2, 80 + 1), 4)
