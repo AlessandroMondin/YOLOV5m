@@ -1,0 +1,13 @@
+train: H:\My Drive\Fire yolo\v6v6\train
+val: H:\My Drive\Fire yolo\v6v6\valid
+test: H:\My Drive\Fire yolo\v6v6\test
+
+nc: 2
+names: ['Fire', 'Smoke']
+
+roboflow:
+  workspace: ember
+  project: ember-d287i
+  version: 7
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/ember/ember-d287i/dataset/7

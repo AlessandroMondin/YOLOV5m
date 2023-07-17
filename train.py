@@ -35,13 +35,12 @@ def arg_parser():
 
 def main(opt):
 
-    parent_dir = os.path.abspath(Path(__file__))
-    parent_dir = "/".join(parent_dir.split("/")[:-2])
     
-    ROOT_DIR = os.path.join(parent_dir, "datasets", opt.data)
+    
+    ROOT_DIR = "./"
 
     if os.path.isfile(os.path.join(ROOT_DIR, "data.yaml")):
-        with open(os.path.join(ROOT_DIR, "data.yaml"), "r") as f:
+        with open(os.path.join(ROOT_DIR, "data.yaml")) as f:
             data = yaml.load(f, Loader=yaml.FullLoader)
             nc = data["nc"]
             labels = data["names"]
